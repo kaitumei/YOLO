@@ -1,0 +1,248 @@
+/* 基础样式 */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: #f8f9fa;
+}
+
+p {
+    font-size: 1em;
+    font-weight: 300;
+    line-height: 1.7em;
+    color: #999;
+}
+
+a, a:hover, a:focus {
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+/* 侧边栏样式 */
+.wrapper {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+}
+
+#sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    background: #343a40;
+    color: #fff;
+    transition: all 0.3s;
+}
+
+#sidebar.active {
+    margin-left: -250px;
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: #212529;
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+    border-bottom: 1px solid #4f5962;
+}
+
+#sidebar ul p {
+    color: #fff;
+    padding: 10px;
+    margin-bottom: 0;
+}
+
+#sidebar ul li a {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    display: block;
+}
+
+#sidebar ul li a:hover {
+    color: #343a40;
+    background: #fff;
+}
+
+#sidebar ul li.active > a, a[aria-expanded="true"] {
+    color: #fff;
+    background: #495057;
+}
+
+/* 内容部分 */
+#content {
+    width: 100%;
+    padding: 20px;
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+/* 导航栏按钮样式 */
+#sidebarCollapse {
+    width: 40px;
+    height: 40px;
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+#sidebarCollapse span {
+    width: 80%;
+    height: 2px;
+    margin: 0 auto;
+    display: block;
+    background: #555;
+    transition: all 0.8s cubic-bezier(0.810, -0.330, 0.345, 1.375);
+}
+
+/* 表格样式 */
+.table-responsive {
+    margin: 30px 0;
+}
+
+.table-wrapper {
+    background: #fff;
+    padding: 20px 25px;
+    border-radius: 3px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.05);
+}
+
+.table-title {
+    padding-bottom: 15px;
+    background: #343a40;
+    color: #fff;
+    padding: 16px 30px;
+    margin: -20px -25px 10px;
+    border-radius: 3px 3px 0 0;
+}
+
+.table-title h2 {
+    margin: 5px 0 0;
+    font-size: 24px;
+}
+
+.table-title .btn {
+    float: right;
+    font-size: 13px;
+    border: none;
+    min-width: 50px;
+    border-radius: 2px;
+    outline: none !important;
+    margin-left: 10px;
+}
+
+.table-title .btn i {
+    float: left;
+    font-size: 21px;
+    margin-right: 5px;
+}
+
+.table-title .btn span {
+    float: left;
+    margin-top: 2px;
+}
+
+/* 卡片样式 */
+.card {
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    padding: 15px 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* 表单样式 */
+.form-group label {
+    font-weight: 500;
+}
+
+.form-control {
+    border-radius: 3px;
+    box-shadow: none !important;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+}
+
+/* 按钮样式 */
+.btn {
+    border-radius: 3px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0069d9;
+    border-color: #0062cc;
+}
+
+/* 统计卡片样式 */
+.stats-card {
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.stats-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 15px;
+    font-size: 24px;
+    color: #fff;
+}
+
+.stats-detail {
+    flex: 1;
+}
+
+.stats-number {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+.stats-label {
+    font-size: 14px;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: -250px;
+    }
+    #sidebar.active {
+        margin-left: 0;
+    }
+    #content {
+        width: 100%;
+    }
+    #content.active {
+        width: calc(100% - 250px);
+    }
+    #sidebarCollapse span {
+        display: none;
+    }
+} 

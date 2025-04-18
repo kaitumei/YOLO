@@ -1,0 +1,469 @@
+/* 主内容区域样式 */
+.content {
+    flex: 1;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+    margin: 0 auto;
+    margin-left: var(--sidebar-collapsed-width);
+    transition: margin 0.3s var(--easing);
+    position: relative;
+}
+
+.sidebar:not(.collapsed) ~ .content {
+    margin-left: var(--sidebar-width);
+}
+
+/* 个人中心容器 */
+.profile-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+/* 头像样式 */
+.avatar {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 40px;
+    transition: transform 0.3s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.05);
+}
+
+.avatar img {
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 4px solid #fff;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* 上传头像样式 */
+.upload-avatar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.avatar:hover .upload-avatar {
+    opacity: 1;
+}
+
+.upload-label {
+    display: inline-block;
+    padding: 8px 16px;
+    background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+    color: white;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.upload-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-upload {
+    padding: 8px 16px;
+    background: linear-gradient(90deg, #4ECDC4, #556270);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+.confirm-upload:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* 隐藏文件输入框 */
+.hidden-input {
+    display: none;
+}
+
+/* 个人信息样式 */
+.username-container {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 20px;
+    position: relative;
+}
+
+.username-container span {
+    font-size: 38px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+    padding: 5px 0;
+    position: relative;
+}
+
+.username-container span::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 3px;
+    bottom: 0;
+    left: 50%;
+    background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.username-container span:hover::after {
+    width: 100%;
+}
+
+.username-container p {
+    font-size: 18px;
+    color: #6c757d;
+    margin-top: 15px;
+    font-style: italic;
+}
+
+/* 个人信息卡片样式 */
+.personage {
+    background-color: white;
+    border-radius: 15px;
+    padding: 35px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.personage:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.personage::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+}
+
+.personage-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #343a40;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.personage-title i {
+    color: #4ECDC4;
+}
+
+/* 信息项样式 */
+.info-item {
+    display: flex;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed #f0f0f0;
+    transition: all 0.3s ease;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.info-item:hover {
+    transform: translateX(5px);
+}
+
+.info-label {
+    width: 140px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #495057;
+    font-weight: 600;
+    font-size: 17px;
+}
+
+.info-label i {
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(45deg, #F8F9FA, #E9ECEF);
+    border-radius: 50%;
+    color: #4ECDC4;
+    font-size: 14px;
+}
+
+.info-content {
+    flex: 1;
+    font-size: 16px;
+    color: #6c757d;
+    line-height: 1.6;
+}
+
+.info-content p {
+    margin: 0;
+    padding: 5px 0;
+    transition: all 0.3s ease;
+}
+
+.info-content p:hover {
+    color: #343a40;
+}
+
+/* 签名框样式 */
+.signature-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+#signature-input {
+    width: 100%;
+    min-height: 80px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    font-size: 16px;
+    color: #495057;
+    resize: none;
+    transition: all 0.3s ease;
+    line-height: 1.5;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+#signature-input:focus {
+    border-color: #4ECDC4;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.25);
+    outline: none;
+}
+
+#signature-input::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.signature-counter {
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    font-size: 12px;
+    color: #adb5bd;
+    background-color: rgba(248, 249, 250, 0.8);
+    padding: 2px 8px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.signature-counter .warning {
+    color: #FF6B6B;
+    font-weight: bold;
+}
+
+.signature-display {
+    position: relative;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    font-style: italic;
+    color: #6c757d;
+    line-height: 1.5;
+    border-left: 3px solid #4ECDC4;
+}
+
+/* 添加一些悬浮效果 */
+#signature-input:hover {
+    border-color: #ced4da;
+}
+
+/* 技能和按钮样式 */
+.skills {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+    border-radius: 15px;
+    padding: 25px 30px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+    transition: all 0.3s ease;
+}
+
+.skills:hover {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* 保存按钮样式 */
+.submit-button {
+    padding: 12px 25px;
+    background: linear-gradient(90deg, #4ECDC4, #556270);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+    background: linear-gradient(90deg, #556270, #4ECDC4);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.submit-button:active {
+    transform: translateY(-1px);
+}
+
+/* 修改密码链接样式 */
+.skills a {
+    padding: 10px 20px;
+    color: #4ECDC4;
+    text-decoration: none;
+    border: 2px solid #4ECDC4;
+    border-radius: 30px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.skills a:hover {
+    background-color: #4ECDC4;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 用户名编辑样式 */
+.username-edit {
+    padding: 10px 15px;
+    border: 2px solid #4ECDC4;
+    border-radius: 8px;
+    font-size: 20px;
+    text-align: center;
+    width: 250px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.username-edit:focus {
+    border-color: #FF6B6B;
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.25);
+    outline: none;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .content {
+        padding: 20px 15px;
+    }
+    
+    .profile-container {
+        padding: 25px;
+    }
+    
+    .username-container span {
+        font-size: 28px;
+    }
+    
+    .avatar {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .personage h2 {
+        font-size: 20px;
+    }
+    
+    .personage p {
+        font-size: 16px;
+    }
+    
+    .submit-button, .skills a {
+        padding: 10px 18px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .skills {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .skills a {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .submit-button {
+        width: 100%;
+    }
+    
+    .username-container span {
+        font-size: 24px;
+    }
+    
+    .avatar {
+        width: 120px;
+        height: 120px;
+    }
+}
+
+.hidden {
+    display: none;
+}
+

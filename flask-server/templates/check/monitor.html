@@ -1,0 +1,1644 @@
+{% extends "common/front_base.html" %}
+{% block title %}AI实时监控平台{% endblock %}
+{% block css %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+    <script src="https://api.map.baidu.com/api?type=webgl&v=1.0&ak=NiHKtaxt5JnN2k3bqpb3xzbO9DoiGDIq"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='check/css/monitor.css') }}">
+    <style>
+        /* 修改画布容器大小 */
+        #video-container {
+            width: 85%;
+            margin: 0 auto;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        #videoFeedCanvas {
+            width: 100%;
+            display: block;
+        }
+        
+        /* 修改地图缩略图样式 */
+        #map-thumbnail {
+            margin: 0;
+            padding: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: absolute;
+            width: 100px;
+            height: 75px;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            float: none;
+        }
+
+        #map-thumbnail-container {
+            width: 100%;
+            height: 100%;
+            border-radius: 3px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .map-thumbnail-title {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 2px 5px;
+            border-radius: 2px;
+            font-size: 10px;
+            z-index: 1001;
+        }
+
+        .map-thumbnail-close {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            width: 16px;
+            height: 16px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1001;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        #map-thumbnail:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        #map-thumbnail.expanded {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            z-index: 1000;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            float: none;
+            margin-right: 0;
+        }
+
+        #map-thumbnail.expanded #map-thumbnail-container {
+            height: calc(100% - 40px);
+        }
+
+        .map-thumbnail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .map-thumbnail-overlay.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            #map-thumbnail-container {
+                height: 150px;
+            }
+            
+            #map-thumbnail.expanded {
+                width: 95%;
+                height: 70%;
+            }
+        }
+        
+        /* 添加响应式设计样式 */
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+            
+            #video-container, #detection-panel, .control-group, #status-bar {
+                width: 95%;
+            }
+            
+            #video-container {
+                margin-bottom: 15px;
+            }
+            
+            .control-group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .btn {
+                margin: 0.5rem;
+                flex: 1 0 40%;
+            }
+            
+            .page-title {
+                font-size: 1.5rem;
+            }
+        }
+        
+        /* 添加加载动画 */
+        .loading-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .loading-indicator.active {
+            display: block !important; /* 使用 !important 确保覆盖任何其他样式 */
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 添加通知样式 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 15px;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            max-width: 300px;
+            animation: slide-in 0.3s ease-out;
+            color: white;
+        }
+        
+        .notification.info {
+            background-color: #3498db;
+            border-left: 4px solid #2980b9;
+        }
+        
+        .notification.warning {
+            background-color: #f39c12;
+            border-left: 4px solid #d35400;
+        }
+        
+        .notification.error {
+            background-color: #e74c3c;
+            border-left: 4px solid #c0392b;
+        }
+        
+        .notification h4 {
+            margin: 0 0 5px 0;
+            font-weight: bold;
+        }
+        
+        .notification p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .notification.fade-out {
+            animation: fade-out 0.5s ease-out forwards;
+        }
+        
+        @keyframes slide-in {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* 录制按钮样式 */
+        .btn-recording {
+            background-color: #e74c3c;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .recording-time {
+            margin-left: 5px;
+            font-family: monospace;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        /* 更多检测结果指示器样式 */
+        .more-indicator {
+            background-color: #f8f9fa;
+            text-align: center;
+            color: #666;
+            padding: 8px;
+            font-style: italic;
+            border-left: 4px solid #aaa;
+        }
+        
+        /* 帮助提示样式 */
+        .help-tip {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            max-width: 300px;
+        }
+        
+        .help-tip p {
+            margin: 0 0 10px 0;
+            font-weight: bold;
+        }
+        
+        .help-tip ul {
+            margin: 0;
+            padding: 0 0 0 20px;
+        }
+        
+        .help-tip li {
+            margin-bottom: 5px;
+        }
+        
+        .help-tip kbd {
+            background-color: #f8f9fa;
+            border: 1px solid #d3d3d3;
+            border-radius: 3px;
+            box-shadow: 0 1px 1px rgba(0, 0, 0, .2);
+            color: #333;
+            display: inline-block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            line-height: 1;
+            padding: 3px 5px;
+            margin-right: 5px;
+        }
+        
+        .close-tip {
+            background: #3498db;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .close-tip:hover {
+            background: #2980b9;
+        }
+        
+        /* 重连按钮样式 */
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        /* 简化进度条样式 */
+        .progress-container {
+            width: 100%;
+            background-color: #f1f1f1;
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 录制指示器样式 */
+        .recording-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        .size-display {
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+
+        .map-thumbnail-close:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
+        }
+
+        /* 修改页面整体布局 */
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        /* 修改检测结果面板 */
+        #detection-panel {
+            width: 85%;
+            margin: 20px auto;
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        #detection-panel h2 {
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* 修改控制按钮组 */
+        .control-group {
+            width: 85%;
+            margin: 15px auto;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* 修改状态栏 */
+        #status-bar {
+            width: 85%;
+            margin: 10px auto;
+            display: flex;
+            justify-content: space-between;
+            background: #f8f9fa;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+    </style>
+{% endblock %}
+{% block content %}
+     <main class="dashboard-container">
+        <h1 class="page-title">AI实时监控平台</h1>
+
+        <section id="video-container" aria-label="实时视频监控区域">
+            <canvas id="videoFeedCanvas" role="img" aria-label="实时视频画面"></canvas>
+            <div class="loading-indicator" id="loadingIndicator">
+                <div class="spinner" role="status">
+                    <span class="visually-hidden">正在加载，请稍候...</span>
+                </div>
+                <p>正在加载...</p>
+            </div>
+            
+            <!-- 地图缩略图移动到视频容器内部 -->
+            <section id="map-thumbnail" aria-label="地图缩略图">
+                <div class="map-thumbnail-title">地图视图</div>
+                <div class="map-thumbnail-close" aria-label="关闭地图">×</div>
+                <div id="map-thumbnail-container"></div>
+            </section>
+            <div class="map-thumbnail-overlay"></div>
+        </section>
+
+        <section id="detection-panel" aria-label="检测结果面板">
+             <h2>检测结果</h2>
+             <div class="detection-list" id="detections-container"></div>
+        </section>
+
+        <footer id="status-bar">
+            <div class="status-item">
+                <span class="status-indicator"></span>
+                <span id="connection-status">连接中...</span>
+            </div>
+            <div class="status-item">
+                <span>帧率: </span>
+                <span id="fps-counter">0 FPS</span>
+            </div>
+        </footer>
+
+        <div class="control-group" aria-label="视频控制">
+            <button class="btn btn-primary" id="pause-resume-btn" aria-label="暂停/继续监控视频">
+                <i class="fas fa-pause" aria-hidden="true"></i> 暂停
+            </button>
+            <button class="btn btn-primary" id="toggle-camera-btn" aria-label="开启/关闭检测">
+                <i class="fas fa-eye" aria-hidden="true"></i> 开启检测
+            </button>
+            <button class="btn btn-secondary" id="capture-btn" aria-label="截图">
+                <i class="fas fa-camera" aria-hidden="true"></i> 截图
+            </button>
+            <button class="btn btn-danger" id="record-btn" aria-label="录制视频">
+                <i class="fas fa-video" aria-hidden="true"></i> 录制
+            </button>
+            <a href="{{ url_for('stream.playback') }}" class="btn btn-info" id="playback-btn" aria-label="查看监控回放">
+                <i class="fas fa-history" aria-hidden="true"></i> 回放
+            </a>
+        </div>
+    </main>
+
+    <script>
+        // 使用配置对象，便于后续修改
+        const CONFIG = {
+            SERVER_URL: 'http://127.0.0.1:5000',  // 修改为本地Flask服务器地址
+            FPS_UPDATE_INTERVAL: 1000,
+            DETECTION_UPDATE_INTERVAL: 300,  // 增加检测更新间隔，减少DOM操作
+            MAX_RECONNECTION_ATTEMPTS: Infinity,
+            RECONNECTION_DELAY: 3000,
+            IMAGE_QUALITY: 0.8,  // 图像质量设置
+            MAX_DETECTIONS_DISPLAY: 10  // 最大显示的检测结果数量
+        };
+        
+        const socket = io(CONFIG.SERVER_URL, {
+            reconnection: true,
+            reconnectionAttempts: CONFIG.MAX_RECONNECTION_ATTEMPTS,
+            reconnectionDelay: CONFIG.RECONNECTION_DELAY,
+            timeout: 10000, // 10秒连接超时
+            transports: ['websocket'],  // 优先使用WebSocket传输
+            upgrade: false  // 禁用传输升级，减少延迟
+        });
+
+        const canvas = document.getElementById('videoFeedCanvas');
+        const ctx = canvas.getContext('2d');
+        let img = new Image();
+        let pendingFrame = null;
+        let frameCount = 0;
+        let lastTime = performance.now();
+        let lastUpdate = 0;
+        const UPDATE_INTERVAL = 200;
+
+        // 新增FPS计算相关变量
+        let fpsValues = [];
+        let fpsUpdateInterval = 1000; // 每秒更新一次FPS
+        let lastFpsUpdate = performance.now();
+
+        // 新增暂停状态变量和当前帧数据保存
+        let isPaused = false;
+        let currentFrame = null;
+        let isCameraOn = true; // 新增摄像状态变量
+        
+        // 添加帧处理队列
+        let frameQueue = [];
+        let isProcessingFrame = false;
+        const MAX_QUEUE_SIZE = 3;  // 最大队列大小
+
+        function updateConnectionStatus(connected) {
+            const statusElem = document.getElementById('connection-status');
+            const indicatorParent = document.querySelector('.status-item');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            if (connected) {
+                statusElem.textContent = "已连接";
+                indicatorParent.classList.add('connected');
+                indicatorParent.classList.remove('disconnected');
+                loadingIndicator.classList.remove('active');
+            } else {
+                statusElem.textContent = "断开连接";
+                indicatorParent.classList.add('disconnected');
+                indicatorParent.classList.remove('connected');
+                loadingIndicator.classList.add('active');
+            }
+        }
+
+        socket.on('connect', () => {
+            console.log('服务器连接成功');
+            updateConnectionStatus(true);
+            // 连接成功后显示通知
+            showNotification('连接成功', '已成功连接到监控服务器');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('服务器连接断开');
+            updateConnectionStatus(false);
+            // 连接断开后显示通知
+            showNotification('连接断开', '与监控服务器的连接已断开，正在尝试重新连接...', 'warning');
+        });
+        
+        // 添加全局错误处理
+        window.addEventListener('error', (event) => {
+            console.error('全局错误:', event.error);
+            showNotification('发生错误', '应用程序遇到了错误，请尝试刷新页面', 'error');
+        });
+        
+        // 添加连接重试逻辑
+        let reconnectAttempts = 0;
+        const MAX_MANUAL_RECONNECT_ATTEMPTS = 3;
+        
+        function attemptReconnect() {
+            if (reconnectAttempts < MAX_MANUAL_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                showNotification('正在重连', `尝试重新连接 (${reconnectAttempts}/${MAX_MANUAL_RECONNECT_ATTEMPTS})...`, 'info');
+                
+                // 尝试重新连接
+                socket.connect();
+                
+                return true;
+            }
+            
+            showNotification('连接失败', '多次尝试连接失败，请检查网络或服务器状态', 'error');
+            return false;
+        }
+        
+        // 添加手动重连按钮
+        function addReconnectButton() {
+            const statusBar = document.getElementById('status-bar');
+            
+            // 检查是否已经存在重连按钮
+            if (document.getElementById('reconnect-btn')) {
+                return;
+            }
+            
+            const reconnectBtn = document.createElement('button');
+            reconnectBtn.id = 'reconnect-btn';
+            reconnectBtn.className = 'btn btn-small';
+            reconnectBtn.textContent = '重新连接';
+            reconnectBtn.addEventListener('click', () => {
+                reconnectAttempts = 0;
+                attemptReconnect();
+            });
+            
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'status-item';
+            btnContainer.appendChild(reconnectBtn);
+            
+            statusBar.appendChild(btnContainer);
+        }
+        
+        socket.on('connect_error', (err) => {
+            console.error('连接错误:', err.message);
+            updateConnectionStatus(false);
+            showNotification('连接错误', `无法连接到服务器: ${err.message}`, 'error');
+            
+            // 添加重连按钮
+            addReconnectButton();
+        });
+        
+        socket.on('reconnect_failed', () => {
+            console.error('重连失败');
+            updateConnectionStatus(false);
+            showNotification('重连失败', '无法重新连接到服务器', 'error');
+            
+            // 添加重连按钮
+            addReconnectButton();
+        });
+        
+        // 修复重连时加载指示器问题
+        socket.on('reconnect', (attemptNumber) => {
+            console.log(`重连成功，尝试次数: ${attemptNumber}`);
+            updateConnectionStatus(true); // 这里应该会隐藏加载指示器，但可能有问题
+            
+            // 明确隐藏加载指示器
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('active');
+                console.log('显式隐藏加载指示器');
+            }
+            
+            showNotification('重连成功', '已重新连接到监控服务器', 'info');
+            reconnectAttempts = 0;
+            
+            // 移除重连按钮
+            const reconnectBtn = document.getElementById('reconnect-btn');
+            if (reconnectBtn && reconnectBtn.parentNode) {
+                reconnectBtn.parentNode.remove();
+            }
+            
+            // 如果摄像头是打开状态，尝试恢复视频流
+            if (isCameraOn) {
+                socket.emit('client_camera_on');
+            }
+            
+            // 延迟一秒后尝试恢复视频流，确保连接已稳定
+            setTimeout(restoreVideoStream, 1000);
+        });
+        
+        // 添加更多重连状态监听
+        socket.on('reconnecting', (attemptNumber) => {
+            console.log(`正在尝试重连，第${attemptNumber}次尝试`);
+            updateConnectionStatus(false);
+            
+            // 确保加载指示器显示
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.classList.add('active');
+            }
+        });
+        
+        // 添加额外的连接状态检查函数
+        function checkConnectionStatus() {
+            if (socket.connected) {
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                if (loadingIndicator && loadingIndicator.classList.contains('active')) {
+                    console.log('连接已建立但加载指示器仍在显示，强制隐藏');
+                    loadingIndicator.classList.remove('active');
+                }
+            }
+        }
+        
+        // 定期检查连接状态（每3秒）
+        setInterval(checkConnectionStatus, 3000);
+        
+        // 添加通知函数
+        function showNotification(title, message, type = 'info') {
+            // 如果环境支持原生通知API且用户已授权
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body: message });
+            } else {
+                // 创建简单的内置通知
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <h4>${title}</h4>
+                    <p>${message}</p>
+                `;
+                document.body.appendChild(notification);
+                
+                // 5秒后自动消失
+                setTimeout(() => {
+                    notification.classList.add('fade-out');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 500);
+                }, 5000);
+            }
+        }
+        
+        // 请求通知权限
+        document.addEventListener('DOMContentLoaded', function() {
+            if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+                Notification.requestPermission();
+            }
+            
+            document.querySelector('.dashboard-container').classList.add('fade-in');
+            // 初始显示加载指示器
+            document.getElementById('loadingIndicator').classList.add('active');
+        });
+
+        // 改进的视频流恢复函数
+        function restoreVideoStream() {
+            if (!isCameraOn) return;
+            
+            console.log('尝试恢复视频流');
+            showNotification('恢复视频', '正在尝试恢复视频流...', 'info');
+            
+            // 确保加载指示器显示，直到第一帧到达
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            if (loadingIndicator) {
+                loadingIndicator.classList.add('active');
+            }
+            
+            // 告知服务器重新启动视频流
+            socket.emit('client_camera_on');
+            
+            // 设置超时，如果5秒内没有收到帧，显示错误
+            const streamTimeout = setTimeout(() => {
+                if (loadingIndicator.classList.contains('active')) {
+                    showNotification('视频恢复失败', '无法恢复视频流，请尝试手动关闭并重新打开摄像头', 'error');
+                    loadingIndicator.classList.remove('active');
+                }
+            }, 5000);
+            
+            // 存储超时ID，以便在收到第一帧时清除
+            window.currentStreamTimeout = streamTimeout;
+        }
+
+        // 改进的帧处理函数，在收到第一帧时清除视频恢复超时
+        socket.on('update_frame', async (data) => {
+            try {
+                // 清除可能存在的视频恢复超时
+                if (window.currentStreamTimeout) {
+                    clearTimeout(window.currentStreamTimeout);
+                    window.currentStreamTimeout = null;
+                    
+                    // 确保加载指示器隐藏
+                    const loadingIndicator = document.getElementById('loadingIndicator');
+                    if (loadingIndicator) {
+                        loadingIndicator.classList.remove('active');
+                    }
+                }
+                
+                if (!isCameraOn || !data.image) return;
+                if (isPaused) {
+                    currentFrame = data;
+                    return;
+                }
+
+                // 使用帧队列处理，避免处理积压
+                if (frameQueue.length >= MAX_QUEUE_SIZE) {
+                    // 队列已满，丢弃最旧的帧
+                    frameQueue.shift();
+                }
+                
+                frameQueue.push(data);
+                
+                // 如果当前没有处理帧，则开始处理
+                if (!isProcessingFrame) {
+                    processNextFrame();
+                }
+            } catch (err) {
+                console.error('帧处理错误:', err);
+                showNotification('视频处理错误', '处理视频帧时出错', 'error');
+            }
+        });
+        
+        // 处理下一帧的函数
+        function processNextFrame() {
+            if (frameQueue.length === 0 || isPaused) {
+                isProcessingFrame = false;
+                return;
+            }
+            
+            isProcessingFrame = true;
+            const data = frameQueue.shift();
+            
+            // 使用更高效的方式转换Base64图像
+            const imageUrl = `data:image/jpeg;base64,${data.image}`;
+            
+            if (pendingFrame) {
+                URL.revokeObjectURL(pendingFrame);
+            }
+            
+            // 使用离屏canvas进行预渲染以提高性能
+            const offscreenCanvas = document.createElement('canvas');
+            const offscreenCtx = offscreenCanvas.getContext('2d');
+            
+            img.onload = () => {
+                offscreenCanvas.width = img.width;
+                offscreenCanvas.height = img.height;
+                offscreenCtx.drawImage(img, 0, 0);
+                
+                requestAnimationFrame(() => {
+                    canvas.width = offscreenCanvas.width;
+                    canvas.height = offscreenCanvas.height;
+                    ctx.drawImage(offscreenCanvas, 0, 0);
+                    frameCount++;
+                    updateFps();
+                    
+                    // 处理完成后，继续处理队列中的下一帧
+                    setTimeout(() => {
+                        isProcessingFrame = false;
+                        processNextFrame();
+                    }, 0);
+                });
+            };
+            img.src = imageUrl;
+
+            const now = Date.now();
+            if (now - lastUpdate >= CONFIG.DETECTION_UPDATE_INTERVAL) {
+                // 使用防抖函数更新检测信息，避免过于频繁的DOM更新
+                debounce(() => updateDetectionInfo(data.detections, true), 100)();
+                lastUpdate = now;
+            }
+
+            currentFrame = data;
+        }
+        
+        // 添加防抖函数以提高性能
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+
+        // 优化检测信息更新函数
+        function updateDetectionInfo(detections, animate = false) {
+            const container = document.getElementById('detections-container');
+            
+            if (container.updating) return;
+            container.updating = true;
+            
+            // 实现虚拟列表渲染 - 对大量检测结果的优化
+            const MAX_VISIBLE_ITEMS = CONFIG.MAX_DETECTIONS_DISPLAY; // 最大显示项数
+            const visibleDetections = detections.slice(0, MAX_VISIBLE_ITEMS);
+            
+            // 使用文档片段减少DOM操作
+            const fragment = document.createDocumentFragment();
+            
+            // 使用缓存优化重复创建的元素
+            const cachedElements = {};
+            
+            visibleDetections.forEach(det => {
+                const className = det.class || '未知类别';
+                const classColors = {
+                    'person': '#4285f4',
+                    'car': '#34a853',
+                    'truck': '#fbbc05',
+                    'bicycle': '#ea4335',
+                    // 可根据需要添加更多类别颜色
+                };
+                const borderColor = classColors[className.toLowerCase()] || '#4285f4';
+                
+                // 创建或重用元素
+                let item = cachedElements[className];
+                if (!item) {
+                    item = document.createElement('div');
+                    item.className = 'detection-item';
+                    item.setAttribute('data-class', className.toLowerCase());
+                    item.style.borderLeftColor = borderColor;
+                    cachedElements[className] = item;
+                } else {
+                    // 清空现有内容以便重用
+                    while (item.firstChild) {
+                        item.removeChild(item.firstChild);
+                    }
+                }
+                
+                // 使用textContent而不是innerHTML提高性能
+                const classLabel = document.createElement('div');
+                classLabel.className = 'class-label';
+                classLabel.textContent = className;
+                item.appendChild(classLabel);
+                
+                const confidenceContainer = document.createElement('div');
+                confidenceContainer.className = 'confidence-container';
+                
+                const confidenceText = document.createElement('div');
+                confidenceText.className = 'confidence-text';
+                
+                const confLabel = document.createElement('span');
+                confLabel.textContent = '置信度';
+                
+                const confValue = document.createElement('span');
+                confValue.textContent = `${(det.confidence * 100).toFixed(1)}%`;
+                
+                confidenceText.appendChild(confLabel);
+                confidenceText.appendChild(confValue);
+                
+                const confBar = document.createElement('div');
+                confBar.className = 'confidence-bar';
+                
+                const confFill = document.createElement('div');
+                confFill.className = 'confidence-fill';
+                confFill.style.width = `${det.confidence * 100}%`;
+                
+                confBar.appendChild(confFill);
+                
+                confidenceContainer.appendChild(confidenceText);
+                confidenceContainer.appendChild(confBar);
+                
+                const coords = document.createElement('div');
+                coords.className = 'coordinates';
+                coords.textContent = `[${det.coordinates.map(x => x.toFixed(1)).join(', ')}]`;
+                
+                item.appendChild(classLabel);
+                item.appendChild(confidenceContainer);
+                item.appendChild(coords);
+                
+                fragment.appendChild(item);
+            });
+            
+            // 如果项目过多，添加"更多"指示器
+            if (detections.length > MAX_VISIBLE_ITEMS) {
+                const moreItem = document.createElement('div');
+                moreItem.className = 'detection-item more-indicator';
+                moreItem.textContent = `+ 另外 ${detections.length - MAX_VISIBLE_ITEMS} 个检测结果`;
+                fragment.appendChild(moreItem);
+            }
+            
+            // 使用requestAnimationFrame优化渲染
+            requestAnimationFrame(() => {
+                // 清空容器并添加新内容
+                container.innerHTML = '';
+                container.appendChild(fragment);
+                
+                // 重置更新标志
+                setTimeout(() => {
+                    container.style.transition = '';
+                    container.updating = false;
+                }, 50);
+            });
+        }
+
+        // 修改帧率计算函数
+        function updateFps() {
+            const now = performance.now();
+            const elapsed = now - lastFpsUpdate;
+            
+            // 每秒更新一次FPS显示
+            if (elapsed >= fpsUpdateInterval) {
+                const fps = frameCount / (elapsed / 1000);
+                
+                // 保存最近10个FPS值用于平滑处理
+                fpsValues.push(fps);
+                if (fpsValues.length > 10) {
+                    fpsValues.shift();
+                }
+                
+                // 计算平均FPS值
+                const avgFps = fpsValues.reduce((sum, val) => sum + val, 0) / fpsValues.length;
+                
+                // 更新显示
+                document.getElementById('fps-counter').textContent = `${avgFps.toFixed(1)} FPS`;
+                
+                // 重置计数器
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+        }
+
+        // 简化性能监控函数
+        function monitorPerformance() {
+            requestAnimationFrame(monitorPerformance);
+        }
+
+        img.crossOrigin = "anonymous";
+        monitorPerformance();
+
+        // 暂停/恢复功能
+        document.getElementById('pause-resume-btn').addEventListener('click', () => {
+            isPaused = !isPaused;
+            const btn = document.getElementById('pause-resume-btn');
+
+            if (isPaused) {
+                btn.querySelector('.text').textContent = '恢复';
+                btn.classList.add('btn-paused');
+                showNotification('视频已暂停', '监控视频流已暂停', 'info');
+            } else {
+                btn.querySelector('.text').textContent = '暂停';
+                btn.classList.remove('btn-paused');
+                
+                // 恢复时重新处理当前帧
+                if (currentFrame && currentFrame.image) {
+                    const imageUrl = `data:image/jpeg;base64,${currentFrame.image}`;
+                    
+                    if (pendingFrame) {
+                        URL.revokeObjectURL(pendingFrame);
+                    }
+                    
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        updateDetectionInfo(currentFrame.detections, true);
+                    };
+                    img.src = imageUrl;
+                }
+            }
+        });
+
+        // 打开/关闭摄像功能
+        document.getElementById('toggle-camera-btn').addEventListener('click', () => {
+            isCameraOn = !isCameraOn;
+            const btn = document.getElementById('toggle-camera-btn');
+
+            if (isCameraOn) {
+                btn.querySelector('.text').textContent = '关闭摄像';
+                btn.classList.remove('btn-camera-off');
+                
+                // 重新开始获取视频流
+                socket.emit('client_camera_on');
+                showNotification('摄像头已开启', '正在连接视频流...', 'info');
+                document.getElementById('loadingIndicator').classList.add('active');
+            } else {
+                btn.querySelector('.text').textContent = '打开摄像';
+                btn.classList.add('btn-camera-off');
+                
+                // 停止获取视频流
+                socket.emit('client_camera_off');
+                showNotification('摄像头已关闭', '视频流已停止', 'info');
+                
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // 清空检测结果
+                document.getElementById('detections-container').innerHTML = 
+                    '<div class="detection-item">摄像头已关闭，没有检测数据</div>';
+            }
+        });
+
+        // 截图功能
+        document.getElementById('capture-btn').addEventListener('click', () => {
+            // 获取canvas的Base64数据（质量设为80%）
+            const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+            const base64Data = dataURL.split(',')[1];
+
+            // 发送截图数据到服务器
+            socket.emit('capture', { image: base64Data });
+        });
+
+        // 接收截图结果通知
+        socket.on('capture_success', (data) => {
+            alert(`截图已保存为：${data.filename}`);
+        });
+
+        socket.on('capture_error', () => {
+            alert('截图保存失败，请检查服务器状态');
+        });
+
+        // 简化的录制功能
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingStartTime = null;
+        let recordingTimer = null;
+
+        // 录制按钮事件处理
+        document.getElementById('record-btn').addEventListener('click', async function() {
+            const btn = this;
+            
+            if (!isRecording) {
+                try {
+                    // 检查摄像头状态
+                    if (!isCameraOn) {
+                        showNotification('录制失败', '摄像头未开启，无法录制', 'error');
+                        return;
+                    }
+                    
+                    // 清空之前的数据
+                    recordedChunks = [];
+                    
+                    // 检查浏览器兼容性
+                    if (!window.MediaRecorder) {
+                        showNotification('不支持录制', '您的浏览器不支持MediaRecorder API', 'error');
+                        return;
+                    }
+                    
+                    // 创建简单的录制选项，增加兼容性
+                    let options = {};
+                    
+                    try {
+                        // 尝试使用高品质选项
+                        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                            options = { 
+                                mimeType: 'video/webm;codecs=vp8',
+                                videoBitsPerSecond: 800000 // 较低比特率，800kbps
+                            };
+                        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                            options = { 
+                                mimeType: 'video/webm',
+                                videoBitsPerSecond: 800000
+                            };
+                        }
+                        // 否则使用默认选项
+                        
+                        console.log('开始录制，使用选项:', options);
+                    } catch (e) {
+                        console.warn('无法使用首选编解码器，将使用默认设置', e);
+                        options = {};
+                    }
+                    
+                    // 尝试捕获画布流
+                    let stream;
+                    try {
+                        // 捕获画布流，如果支持则使用较低帧率
+                        stream = canvas.captureStream ? canvas.captureStream(20) : canvas.captureStream();
+                    } catch (e) {
+                        console.error('无法捕获画布流:', e);
+                        showNotification('录制失败', '无法捕获视频流，您的浏览器可能不支持此功能', 'error');
+                        return;
+                    }
+                    
+                    // 创建MediaRecorder
+                    try {
+                        mediaRecorder = new MediaRecorder(stream, options);
+                    } catch (e) {
+                        console.error('创建MediaRecorder失败:', e);
+                        showNotification('录制错误', `创建录制器失败: ${e.message}`, 'error');
+                        return;
+                    }
+                    
+                    // 添加数据处理
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            recordedChunks.push(event.data);
+                            
+                            // 显示当前大小
+                            const totalSize = recordedChunks.reduce((size, chunk) => size + chunk.size, 0);
+                            const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+                            
+                            // 更新大小显示
+                            const sizeDisplay = document.getElementById('recording-size') || document.createElement('span');
+                            sizeDisplay.id = 'recording-size';
+                            sizeDisplay.textContent = `(${sizeMB} MB)`;
+                            sizeDisplay.className = 'size-display';
+                            
+                            if (!document.getElementById('recording-size')) {
+                                const textSpan = btn.querySelector('.text') || btn;
+                                textSpan.appendChild(sizeDisplay);
+                            }
+                            
+                            // 如果太大，自动停止
+                            if (totalSize > 50 * 1024 * 1024) { // 50MB
+                                showNotification('录制已自动停止', '录制大小超过50MB', 'warning');
+                                stopRecording();
+                            }
+                        }
+                    };
+                    
+                    // 停止录制处理
+                    mediaRecorder.onstop = async () => {
+                        clearInterval(recordingTimer);
+                        isRecording = false;
+                        
+                        if (recordedChunks.length === 0) {
+                            showNotification('录制失败', '未收集到视频数据', 'error');
+                            resetRecordButton();
+                            return;
+                        }
+                        
+                        // 组合视频块
+                        let mimeType = 'video/webm';
+                        if (mediaRecorder.mimeType && mediaRecorder.mimeType !== '') {
+                            mimeType = mediaRecorder.mimeType;
+                        }
+                        
+                        const blob = new Blob(recordedChunks, { type: mimeType });
+                        const size = (blob.size / (1024 * 1024)).toFixed(2);
+                        console.log(`录制完成，大小: ${size} MB, 类型: ${mimeType}`);
+                        
+                        // 提供本地下载
+                        window.lastRecordedVideo = blob;
+                        const downloadBtn = document.getElementById('local-download-btn') || createDownloadButton();
+                        downloadBtn.style.display = 'inline-flex';
+                        
+                        showNotification('录制完成', `视频大小: ${size} MB，您可以下载或上传`, 'info');
+                        
+                        // 恢复按钮状态
+                        resetRecordButton();
+                        
+                        // 询问是否上传
+                        if (confirm('录制完成，是否上传到服务器？\n(取消将仅保存到本地)')) {
+                            try {
+                                await uploadVideo(blob);
+                            } catch (e) {
+                                console.error('上传失败:', e);
+                                // 自动触发下载作为备选方案
+                                downloadBtn.click();
+                            }
+                        } else {
+                            // 自动触发下载
+                            downloadBtn.click();
+                        }
+                    };
+                    
+                    // 错误处理
+                    mediaRecorder.onerror = (event) => {
+                        console.error('录制过程中出错:', event.error);
+                        showNotification('录制错误', `录制过程出错: ${event.error}`, 'error');
+                        stopRecording();
+                    };
+                    
+                    // 开始录制
+                    try {
+                        mediaRecorder.start(1000); // 每秒一个数据块
+                        isRecording = true;
+                        recordingStartTime = Date.now();
+                        
+                        // 更新按钮状态
+                        const indicator = document.createElement('span');
+                        indicator.className = 'recording-indicator';
+                        btn.innerHTML = '';
+                        btn.appendChild(indicator);
+                        btn.appendChild(document.createTextNode('停止录制'));
+                        btn.classList.add('btn-recording');
+                        
+                        // 添加时间显示
+                        const timeDisplay = document.createElement('span');
+                        timeDisplay.id = 'recording-time';
+                        timeDisplay.className = 'recording-time';
+                        timeDisplay.textContent = '00:00';
+                        btn.appendChild(timeDisplay);
+                        
+                        // 开始时间计时
+                        recordingTimer = setInterval(() => {
+                            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                            const seconds = (elapsed % 60).toString().padStart(2, '0');
+                            timeDisplay.textContent = ` ${minutes}:${seconds}`;
+                            
+                            // 5分钟自动停止
+                            if (elapsed >= 300) {
+                                showNotification('录制已自动停止', '已达到最大录制时间(5分钟)', 'info');
+                                stopRecording();
+                            }
+                        }, 1000);
+                        
+                    } catch (error) {
+                        console.error('启动录制失败:', error);
+                        showNotification('启动录制失败', `无法开始录制: ${error.message}`, 'error');
+                        isRecording = false;
+                        resetRecordButton();
+                    }
+                    
+                } catch (error) {
+                    console.error('录制初始化失败:', error);
+                    showNotification('录制失败', `无法初始化录制: ${error.message}`, 'error');
+                    resetRecordButton();
+                }
+            } else {
+                // 停止录制
+                stopRecording();
+            }
+        });
+
+        // 停止录制函数
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                try {
+                    mediaRecorder.stop();
+                    // 按钮状态会在onstop中重置
+                } catch (error) {
+                    console.error('停止录制错误:', error);
+                    showNotification('停止错误', error.message, 'error');
+                    resetRecordButton();
+                }
+            }
+        }
+
+        // 重置录制按钮
+        function resetRecordButton() {
+            const btn = document.getElementById('record-btn');
+            btn.innerHTML = '<span class="icon">⏺</span><span class="text">开始录制</span>';
+            btn.classList.remove('btn-recording');
+        }
+
+        // 创建下载按钮
+        function createDownloadButton() {
+            const container = document.querySelector('.control-group');
+            
+            // 检查按钮是否已存在
+            if (document.getElementById('local-download-btn')) {
+                return document.getElementById('local-download-btn');
+            }
+            
+            const btn = document.createElement('button');
+            btn.id = 'local-download-btn';
+            btn.className = 'btn btn-secondary';
+            btn.innerHTML = '<span class="icon">💾</span><span class="text">下载视频</span>';
+            btn.style.display = 'none';
+            
+            btn.addEventListener('click', () => {
+                if (!window.lastRecordedVideo) {
+                    showNotification('无视频', '没有可下载的视频', 'warning');
+                    return;
+                }
+                
+                // 创建下载链接
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(window.lastRecordedVideo);
+                a.download = `监控录像_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.webm`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // 清理
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
+                }, 100);
+            });
+            
+            container.appendChild(btn);
+            return btn;
+        }
+
+        // 简化的上传函数
+        async function uploadVideo(blob) {
+            try {
+                showNotification('准备上传', '正在处理视频...', 'info');
+                
+                // 添加进度容器
+                let progressContainer = document.getElementById('upload-progress-container');
+                if (!progressContainer) {
+                    progressContainer = document.createElement('div');
+                    progressContainer.id = 'upload-progress-container';
+                    progressContainer.className = 'progress-container';
+                    
+                    const progressBar = document.createElement('div');
+                    progressBar.id = 'upload-progress-bar';
+                    progressBar.className = 'progress-bar';
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+                    
+                    progressContainer.appendChild(progressBar);
+                    document.querySelector('.control-group').appendChild(progressContainer);
+                }
+                
+                progressContainer.style.display = 'block';
+                
+                // 根据文件大小决定上传方式
+                const fileSizeMB = blob.size / (1024 * 1024);
+                let result;
+                
+                if (fileSizeMB <= 10) {
+                    // 小文件用Socket.IO
+                    result = await uploadViaSocketIO(blob);
+                } else {
+                    // 大文件用HTTP表单
+                    result = await uploadViaHTTP(blob);
+                }
+                
+                showNotification('上传成功', '视频已成功上传到服务器', 'info');
+                console.log('上传结果:', result);
+                
+                // 隐藏进度条
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 2000);
+                
+                return result;
+            } catch (error) {
+                console.error('上传失败:', error);
+                document.getElementById('upload-progress-container').style.display = 'none';
+                showNotification('上传失败', `错误: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Socket.IO上传方法
+        async function uploadViaSocketIO(blob) {
+            return new Promise((resolve, reject) => {
+                // 先转换为Base64
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                
+                reader.onload = function() {
+                    try {
+                        const base64data = reader.result.split(',')[1];
+                        
+                        // 更新进度为50%（表示转换完成）
+                        updateProgress(50);
+                        
+                        // 设置超时处理
+                        const timeout = setTimeout(() => {
+                            socket.off('video_saved');
+                            socket.off('video_save_error');
+                            reject(new Error('上传超时'));
+                        }, 60000); // 60秒超时
+                        
+                        // 监听成功事件
+                        socket.once('video_saved', (data) => {
+                            clearTimeout(timeout);
+                            updateProgress(100);
+                            resolve(data);
+                        });
+                        
+                        // 监听错误事件
+                        socket.once('video_save_error', (error) => {
+                            clearTimeout(timeout);
+                            reject(new Error(error.message || '服务器保存失败'));
+                        });
+                        
+                        // 发送数据
+                        const filename = `recording_${Date.now()}.webm`;
+                        socket.emit('save_video', {
+                            video: base64data,
+                            filename: filename
+                        });
+                        
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error('文件读取失败'));
+                };
+            });
+        }
+
+        // HTTP上传方法
+        async function uploadViaHTTP(blob) {
+            return new Promise((resolve, reject) => {
+                // 使用XHR获取进度信息
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                const filename = `recording_${Date.now()}.webm`;
+                
+                // 添加文件到表单
+                formData.append('video', blob, filename);
+                
+                // 设置进度监听
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percent = Math.round((event.loaded / event.total) * 100);
+                        updateProgress(percent);
+                    }
+                };
+                
+                // 处理完成
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            updateProgress(100);
+                            resolve(response);
+                        } catch (error) {
+                            reject(new Error('无法解析服务器响应'));
+                        }
+                    } else {
+                        reject(new Error(`服务器错误: ${xhr.status}`));
+                    }
+                };
+                
+                // 错误处理
+                xhr.onerror = function() {
+                    reject(new Error('网络错误'));
+                };
+                
+                xhr.ontimeout = function() {
+                    reject(new Error('请求超时'));
+                };
+                
+                // 发送请求
+                xhr.open('POST', `${CONFIG.SERVER_URL}/api/video/upload`, true);
+                xhr.timeout = 120000; // 2分钟超时
+                xhr.send(formData);
+            });
+        }
+
+        // 更新进度条
+        function updateProgress(percent) {
+            const progressBar = document.getElementById('upload-progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${percent}%`;
+                progressBar.textContent = `${percent}%`;
+            }
+        }
+
+        // 初始化地图缩略图
+        var thumbnailMap = new BMapGL.Map('map-thumbnail-container');
+        thumbnailMap.centerAndZoom('长沙', 12);
+        thumbnailMap.disableDragging(); // 禁用拖动
+        thumbnailMap.disableDoubleClickZoom(); // 禁用双击缩放
+        thumbnailMap.disablePinchToZoom(); // 禁用双指缩放
+        thumbnailMap.disableScrollWheelZoom(); // 禁用滚轮缩放
+
+        // 添加地图控件
+        thumbnailMap.addControl(new BMapGL.ScaleControl({
+            anchor: BMAP_ANCHOR_BOTTOM_LEFT,
+            offset: new BMapGL.Size(10, 10)
+        }));
+
+        // 添加交通流量图层
+        var thumbnailTrafficLayer = new BMapGL.TrafficLayer();
+        thumbnailMap.addTileLayer(thumbnailTrafficLayer);
+
+        // 地图缩略图展开/收起功能
+        const mapThumbnail = document.getElementById('map-thumbnail');
+        const mapOverlay = document.querySelector('.map-thumbnail-overlay');
+        const closeButton = document.querySelector('.map-thumbnail-close');
+        const mapTitle = document.querySelector('.map-thumbnail-title');
+
+        function expandMap() {
+            mapThumbnail.classList.add('expanded');
+            mapOverlay.classList.add('active');
+            mapTitle.textContent = '实时位置地图';
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+            
+            // 重新启用地图交互
+            thumbnailMap.enableDragging();
+            thumbnailMap.enableDoubleClickZoom();
+            thumbnailMap.enablePinchToZoom();
+            thumbnailMap.enableScrollWheelZoom();
+            
+            // 触发地图重新渲染
+            thumbnailMap.checkResize();
+        }
+
+        function collapseMap() {
+            mapThumbnail.classList.remove('expanded');
+            mapOverlay.classList.remove('active');
+            mapTitle.textContent = '点击展开地图';
+            document.body.style.overflow = '';
+            
+            // 禁用地图交互
+            thumbnailMap.disableDragging();
+            thumbnailMap.disableDoubleClickZoom();
+            thumbnailMap.disablePinchToZoom();
+            thumbnailMap.disableScrollWheelZoom();
+            
+            // 触发地图重新渲染
+            thumbnailMap.checkResize();
+        }
+
+        // 点击地图缩略图展开
+        mapThumbnail.addEventListener('click', function(e) {
+            // 如果点击的是关闭按钮，不展开
+            if (e.target === closeButton) return;
+            expandMap();
+        });
+
+        // 点击关闭按钮收起
+        closeButton.addEventListener('click', function(e) {
+            e.stopPropagation(); // 阻止事件冒泡
+            collapseMap();
+        });
+
+        // 点击遮罩层收起
+        mapOverlay.addEventListener('click', collapseMap);
+
+        // ESC键收起地图
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && mapThumbnail.classList.contains('expanded')) {
+                collapseMap();
+            }
+        });
+
+        // 获取当前位置并在地图上显示
+        function showCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        // 转换坐标系 (WGS84 到 BD09)
+                        var convertor = new BMapGL.Convertor();
+                        var point = new BMapGL.Point(position.coords.longitude, position.coords.latitude);
+                        
+                        convertor.translate([point], 1, 5, function(data) {
+                            if (data.status === 0) {
+                                var currentPt = data.points[0];
+                                
+                                // 在地图上标记当前位置
+                                var marker = new BMapGL.Marker(currentPt);
+                                thumbnailMap.clearOverlays();
+                                thumbnailMap.addOverlay(marker);
+                                thumbnailMap.setCenter(currentPt);
+                                thumbnailMap.setZoom(15);
+
+                                // 添加定位精度圈
+                                var accuracy = position.coords.accuracy;
+                                var accuracyCircle = new BMapGL.Circle(currentPt, accuracy, {
+                                    strokeColor: "#3C90F7",
+                                    strokeWeight: 1,
+                                    strokeOpacity: 0.3,
+                                    fillColor: "#3C90F7",
+                                    fillOpacity: 0.1
+                                });
+                                thumbnailMap.addOverlay(accuracyCircle);
+                            }
+                        });
+                    },
+                    function(error) {
+                        console.error('获取位置失败:', error);
+                        showNotification('定位失败', '无法获取当前位置', 'error');
+                    }
+                );
+            }
+        }
+
+        // 页面加载完成后获取位置
+        document.addEventListener('DOMContentLoaded', function() {
+            showCurrentLocation();
+        });
+
+        // 每5分钟更新一次位置
+        setInterval(showCurrentLocation, 300000);
+    </script>
+{% endblock %}

@@ -1,0 +1,336 @@
+{% extends "common/front_base.html" %}
+
+{% block title %}流媒体列表{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stream/css/stream.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>流媒体列表</h1>
+        <p class="subtitle">所有活跃的流媒体直播，支持RTMP、HLS和HTTP-FLV多种协议</p>
+        <div class="header-actions">
+            <button id="refresh_button" class="btn btn-secondary" title="刷新流媒体列表">
+                <i class="fas fa-sync-alt"></i> 刷新列表
+            </button>
+            <a href="/stream/rtmp_push" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 添加新推流
+            </a>
+        </div>
+    </div>
+    
+    <div class="stats-section">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-broadcast-tower"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number" id="active_stream_count">0</div>
+                <div class="stat-label">活跃推流</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-server"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number server-status online">在线</div>
+                <div class="stat-label">服务器状态</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ bandwidth|default('0 KB/s') }}</div>
+                <div class="stat-label">当前带宽</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card active-streams">
+        <div class="card-badge">实时</div>
+        <h3><i class="fas fa-broadcast-tower"></i> 活跃流媒体</h3>
+        
+        <div class="streams-container">
+            <div id="stream_loading" class="loading-container">
+                <div class="loading-spinner"></div>
+                <p>加载流媒体列表中...</p>
+            </div>
+            
+            <div id="no_streams" class="no-streams-message hidden">
+                <i class="fas fa-video-slash"></i>
+                <p>当前没有活跃的流媒体</p>
+                <a href="/stream/rtmp_push" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 添加新推流
+                </a>
+            </div>
+            
+            <div id="streams_table_container" class="table-responsive hidden">
+                <table class="table table-hover stream-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-hashtag"></i> 流ID</th>
+                            <th><i class="fas fa-camera"></i> 摄像头URL</th>
+                            <th><i class="fas fa-broadcast-tower"></i> RTMP地址</th>
+                            <th><i class="fas fa-clock"></i> 运行时间</th>
+                            <th><i class="fas fa-cogs"></i> 参数</th>
+                            <th><i class="fas fa-tools"></i> 操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="streams_table">
+                        <!-- 流媒体数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-play-circle"></i> 流媒体播放器</h3>
+        <p class="player-instruction">选择一个流进行播放预览，支持多种播放方式</p>
+        
+        <div id="player_container" class="player-container hidden">
+            <div class="player-header">
+                <h4 id="player_title">未选择流</h4>
+                <div class="player-controls">
+                    <button class="player-control-btn" id="play_pause_btn" title="播放/暂停">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                    <button class="player-control-btn" id="mute_btn" title="静音/取消静音">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button class="player-control-btn" id="fullscreen_btn" title="全屏">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div class="player-control-select">
+                        <select id="stream_format_select" class="form-control" title="选择流媒体格式" aria-label="流媒体格式">
+                            <option value="flv">HTTP-FLV</option>
+                            <option value="hls">HLS</option>
+                            <option value="rtmp">RTMP (Flash)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="player_wrapper" class="stream-preview">
+                <!-- 这里将放置播放器 -->
+            </div>
+            
+            <div class="stream-urls">
+                <div class="stream-url-item">
+                    <span class="url-label"><i class="fas fa-link"></i> RTMP:</span>
+                    <input type="text" id="rtmp_url" class="form-control url-input" readonly title="RTMP流地址" aria-label="RTMP流地址" placeholder="RTMP流地址"/>
+                    <button class="url-copy-btn" data-target="rtmp_url" title="复制RTMP地址">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <div class="stream-url-item">
+                    <span class="url-label"><i class="fas fa-link"></i> HTTP-FLV:</span>
+                    <input type="text" id="flv_url" class="form-control url-input" readonly title="HTTP-FLV流地址" aria-label="HTTP-FLV流地址" placeholder="HTTP-FLV流地址"/>
+                    <button class="url-copy-btn" data-target="flv_url" title="复制HTTP-FLV地址">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <div class="stream-url-item">
+                    <span class="url-label"><i class="fas fa-link"></i> HLS:</span>
+                    <input type="text" id="hls_url" class="form-control url-input" readonly title="HLS流地址" aria-label="HLS流地址" placeholder="HLS流地址"/>
+                    <button class="url-copy-btn" data-target="hls_url" title="复制HLS地址">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="no_stream_selected" class="no-stream-selected">
+            <i class="fas fa-hand-pointer"></i>
+            <p>请从上方列表中选择一个流进行播放</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-question-circle"></i> 使用帮助</h3>
+        <div class="help-content">
+            <div class="help-section">
+                <h4><i class="fas fa-info-circle"></i> 什么是流媒体服务?</h4>
+                <p>流媒体服务允许您通过网络实时传输视频和音频内容。我们的平台支持RTMP推流，并提供多种格式的播放方式，如RTMP、HTTP-FLV和HLS。</p>
+            </div>
+            
+            <div class="help-section">
+                <h4><i class="fas fa-lightbulb"></i> 如何使用?</h4>
+                <ul class="help-steps">
+                    <li><strong>查看流列表</strong> - 此页面显示所有活跃的流媒体</li>
+                    <li><strong>添加新推流</strong> - 点击"添加新推流"按钮，配置IP摄像头或其他流媒体源</li>
+                    <li><strong>播放流媒体</strong> - 从列表中选择一个流，使用内置播放器预览</li>
+                    <li><strong>分享地址</strong> - 复制流媒体URLs，在其他播放器或平台使用</li>
+                </ul>
+            </div>
+            
+            <div class="help-section">
+                <h4><i class="fas fa-exclamation-triangle"></i> 常见问题</h4>
+                <div class="faq-items">
+                    <div class="faq-item">
+                        <h5>无法播放流?</h5>
+                        <p>请检查网络连接和浏览器兼容性。确保使用的是现代浏览器，如Chrome、Firefox或Edge的最新版本。</p>
+                    </div>
+                    <div class="faq-item">
+                        <h5>如何停止流媒体?</h5>
+                        <p>在流媒体列表中找到对应的流，点击操作列中的"停止"按钮即可终止推流。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="/stream" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回首页
+            </a>
+            <a href="/stream/rtmp_push" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 添加推流
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 参数详情模态框 -->
+<div class="modal fade" id="paramsModal" tabindex="-1" role="dialog" aria-labelledby="paramsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paramsModalLabel">流媒体参数详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="paramsModalBody">
+                <div class="loading-spinner"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    // 初始化Socket.IO连接
+    const socket = io();
+    
+    // 连接成功
+    socket.on('connect', () => {
+        console.log('WebSocket连接成功');
+        // 请求流媒体状态更新
+        socket.emit('stream_request', {});
+    });
+    
+    // 接收流媒体状态更新
+    socket.on('stream_update', (data) => {
+        console.log('收到流媒体更新:', data);
+        if (data.type === 'stream_status') {
+            updateStreamsList(data.streams);
+        }
+    });
+    
+    // 更新流媒体列表
+    function updateStreamsList(streams) {
+        const tableBody = document.getElementById('streams_table');
+        const noStreamsMsg = document.getElementById('no_streams');
+        const tableContainer = document.getElementById('streams_table_container');
+        const loadingSpinner = document.getElementById('stream_loading');
+        
+        // 隐藏加载动画
+        loadingSpinner.classList.add('hidden');
+        
+        if (!streams || streams.length === 0) {
+            noStreamsMsg.classList.remove('hidden');
+            tableContainer.classList.add('hidden');
+            document.getElementById('active_stream_count').textContent = '0';
+            return;
+        }
+        
+        // 显示表格，隐藏无流提示
+        noStreamsMsg.classList.add('hidden');
+        tableContainer.classList.remove('hidden');
+        
+        // 更新活跃流数量
+        document.getElementById('active_stream_count').textContent = streams.length;
+        
+        // 清空表格
+        tableBody.innerHTML = '';
+        
+        // 添加流媒体数据
+        streams.forEach(stream => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${stream.stream_id}</td>
+                <td>${stream.camera_url}</td>
+                <td>${stream.rtmp_url}</td>
+                <td>${stream.runtime || '0:00:00'}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="showStreamParams('${stream.stream_id}')">
+                        <i class="fas fa-cogs"></i> 查看参数
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="stopStream('${stream.stream_id}')">
+                        <i class="fas fa-stop"></i> 停止
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    }
+    
+    // 停止流媒体
+    function stopStream(streamId) {
+        if (confirm('确定要停止这个流媒体吗？')) {
+            fetch('/stream/api/stop-push', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ stream_id: streamId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 请求更新流媒体列表
+                    socket.emit('stream_request', {});
+                } else {
+                    alert('停止流媒体失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('停止流媒体时发生错误');
+            });
+        }
+    }
+    
+    // 显示流媒体参数
+    function showStreamParams(streamId) {
+        // 实现显示流媒体参数的逻辑
+        alert('流媒体参数功能正在开发中');
+    }
+    
+    // 页面加载完成后自动刷新流媒体列表
+    document.addEventListener('DOMContentLoaded', () => {
+        // 初始请求流媒体列表
+        socket.emit('stream_request', {});
+        
+        // 设置定时刷新
+        setInterval(() => {
+            socket.emit('stream_request', {});
+        }, 5000); // 每5秒刷新一次
+    });
+    
+    // 刷新按钮点击事件
+    document.getElementById('refresh_button').addEventListener('click', () => {
+        socket.emit('stream_request', {});
+    });
+</script>
+{% endblock %} 

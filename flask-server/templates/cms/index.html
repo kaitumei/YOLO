@@ -1,0 +1,720 @@
+{% extends 'common/cms_base.html' %}
+
+{% block title %}【界安】---后台管理{% endblock %}
+
+{% block css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='cms/css/index.css') }}">
+    <style>
+        /* 添加卡片过渡动画效果 */
+        .management-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .management-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 数据统计卡片动效 */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+        
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(30deg);
+            transition: transform 0.5s ease;
+            pointer-events: none;
+        }
+        
+        .stat-card:hover::after {
+            transform: rotate(30deg) translate(10%, 10%);
+        }
+        
+        /* 标题栏样式 */
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .page-title {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #333;
+        }
+        
+        .time-display {
+            display: flex;
+            align-items: center;
+        }
+        
+        .time-label {
+            margin-right: 10px;
+        }
+        
+        .time-value {
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .page-description {
+            color: #666;
+            margin-bottom: 0;
+        }
+        
+        .action-btn {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .action-btn a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: all 0.4s ease;
+            z-index: -1;
+        }
+        
+        .action-btn:hover::before {
+            left: 0;
+        }
+        
+        /* 加载动画 */
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .loading {
+            animation: pulse 2s infinite ease-in-out;
+        }
+        
+        /* 图表容器样式 */
+        .chart-wrapper {
+            height: 300px;
+            position: relative;
+            border-radius: 8px;
+            background: #fff;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .chart-title i {
+            margin-right: 8px;
+            color: #4CAF50;
+        }
+        
+        .chart-actions {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chart-action {
+            background: #f5f5f5;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-action:hover, .chart-action.active {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        /* 系统状态样式 */
+        .status-value {
+            min-width: 60px;
+            text-align: right;
+        }
+        
+        /* 进度条动画 */
+        @keyframes progressAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #007bff, #00d2ff, #007bff);
+            background-size: 200% auto;
+            animation: progressAnimation 3s infinite linear;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!-- 主内容区域开始 -->
+    <div class="content">
+        <!-- 欢迎横幅 -->
+        <div class="management-card">
+            <div class="header-row">
+                <h1 class="page-title">欢迎使用【HorizonSafe 界安】后台管理系统</h1>
+                <div class="time-display">
+                    <span class="time-label">当前时间: </span>
+                    <span id="current-time" class="time-value"></span>
+                </div>
+            </div>
+            <p class="page-description">您可以在这里管理用户、内容和系统设置，监控平台运行状态。</p>
+        </div>
+        
+        <!-- 用户管理模块 -->
+        <div class="management-card">
+            <h2 class="section-title">👥 用户管理</h2>
+
+            <div class="admin-actions">
+                <a href="{{ url_for('cms.users_list') }}" class="action-btn">
+                    <i class="fas fa-list-ul"></i> 用户列表
+                </a>
+                <a href="{{ url_for('cms.add_staff') }}" class="action-btn">
+                    <i class="fas fa-user-plus"></i> 创建用户
+                </a>
+                <a href="{{url_for('cms.staff_list')}}" class="action-btn">
+                    <i class="fas fa-lock"></i> 权限管理
+                </a>
+            </div>
+
+            <div class="data-grid">
+                <div class="stat-card">
+                    <span class="stat-label">总用户数</span>
+                    <span class="stat-value">{{ total_users }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">今日新增</span>
+                    <span class="stat-value">{{ today_new_users }}</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label">访问量</span>
+                    <span class="stat-value">{{ total_visits }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 预约情况模块 -->
+        <div class="management-card">
+            <h2 class="section-title">🚗 预约情况</h2>
+
+            <div class="admin-actions">
+                <a href="{{ url_for('cms.vehicle_appointments_list') }}" class="action-btn">
+                    <i class="fas fa-calendar-check"></i> 预约统计
+                </a>
+                <a href="{{ url_for('cms.notices_list') }}" class="action-btn">
+                    <i class="fas fa-eye"></i> 公告管理
+                </a>
+                <a href="{{ url_for('cms.banners_list') }}" class="action-btn">
+                    <i class="fas fa-chart-line"></i> 轮播图管理
+                </a>
+            </div>
+
+            <div class="data-grid">
+                <div class="stat-card warning">
+                    <span class="stat-label">待审核预约</span>
+                    <span class="stat-value">{{ pending_count }}</span>
+                </div>
+                <div class="stat-card success">
+                    <span class="stat-label">已确认预约</span>
+                    <span class="stat-value">{{ approved_count }}</span>
+                </div>
+                <div class="stat-card danger">
+                    <span class="stat-label">已拒绝预约</span>
+                    <span class="stat-value">{{ rejected_count }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 实时数据模块 -->
+        <div class="management-card">
+            <h2 class="section-title">📊 实时数据</h2>
+
+            <div class="chart-container">
+                <div class="chart-wrapper">
+                    <h3 class="chart-title"><i class="fas fa-chart-line"></i> 用户增长趋势图</h3>
+                    <div class="chart-actions">
+                        <button class="chart-action active" data-days="7">7天</button>
+                        <button class="chart-action" data-days="30">30天</button>
+                        <button class="chart-action" data-days="90">90天</button>
+                    </div>
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+                
+                <div class="chart-wrapper">
+                    <h3 class="chart-title"><i class="fas fa-fire"></i> 内容访问量热力图</h3>
+                    <div class="chart-actions">
+                        <button class="chart-action-heatmap active" data-days="7">7天</button>
+                        <button class="chart-action-heatmap" data-days="30">30天</button>
+                        <button class="chart-action-heatmap" data-days="90">90天</button>
+                    </div>
+                    <canvas id="contentAccessHeatmap"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统信息模块 -->
+        <div class="management-card">
+            <h2 class="section-title">⚙️ 系统状态</h2>
+
+            <div class="system-status">
+                <div class="status-item">
+                    <span class="status-label">CPU 负载</span>
+                    <div class="status-progress">
+                        <div class="progress-bar" id="cpu-progress"></div>
+                    </div>
+                    <span class="status-value" id="cpu-text">{{ cpu_percent }}%</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">数据库状态</span>
+                    <span class="status-indicator {{ db_status_class }}"><i class="fas fa-circle"></i> {{ db_status }}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">MQTT状态</span>
+                    <div class="status-progress">
+                        <div class="progress-bar" id="mqtt-progress"></div>
+                    </div>
+                    <span class="status-indicator {{ mqtt_status_class }}"><i class="fas fa-circle"></i> {{ mqtt_status }}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Redis状态</span>
+                    <div class="status-progress">
+                        <div class="progress-bar" id="redis-progress"></div>
+                    </div>
+                    <span class="status-indicator {{ redis_status_class }}"><i class="fas fa-circle"></i> {{ redis_status }}</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">系统运行时间</span>
+                    <span class="status-indicator" id="uptime-text">{{ system_uptime }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 主内容区域结束 -->
+{% endblock %}
+
+{% block js %}
+<!-- Chart.js库 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
+<script>
+    // 无需模拟访问量，从后端获取实际数据
+    function updateOnlineUsers() {
+        // 实现从后端获取实际访问量数据的逻辑
+    }
+    
+    // 初始化
+    function updateCurrentTime() {
+        const now = new Date();
+        const options = {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        };
+        document.getElementById('current-time').textContent = now.toLocaleString('zh-CN', options);
+    }
+    
+    // 初始化用户增长趋势图
+    let userGrowthChart;
+    function initUserGrowthChart(days = 7) {
+        // 清除之前的图表
+        if (userGrowthChart) {
+            userGrowthChart.destroy();
+        }
+        
+        // 设置Canvas上下文
+        const ctx = document.getElementById('userGrowthChart').getContext('2d');
+        
+        // 显示加载状态
+        ctx.canvas.classList.add('loading');
+        
+        // 获取数据
+        fetch(`/cms/api/user-growth?days=${days}`)
+            .then(response => response.json())
+            .then(data => {
+                // 移除加载状态
+                ctx.canvas.classList.remove('loading');
+                
+                // 创建图表
+                userGrowthChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels,
+                        datasets: [
+                            {
+                                label: '日新增用户',
+                                data: data.newUsers,
+                                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                                borderColor: '#4CAF50',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#4CAF50',
+                                pointRadius: 3,
+                                tension: 0.3,
+                                fill: true
+                            },
+                            {
+                                label: '累计用户数',
+                                data: data.cumulativeUsers,
+                                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                                borderColor: '#2196F3',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#2196F3',
+                                pointRadius: 3,
+                                tension: 0.3,
+                                fill: true,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    boxWidth: 12,
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                titleColor: '#333',
+                                bodyColor: '#666',
+                                borderColor: '#ddd',
+                                borderWidth: 1,
+                                padding: 12,
+                                bodyFont: {
+                                    size: 13
+                                },
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y;
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                ticks: {
+                                    precision: 0
+                                }
+                            },
+                            y1: {
+                                position: 'right',
+                                beginAtZero: true,
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        },
+                        interaction: {
+                            mode: 'nearest',
+                            axis: 'x',
+                            intersect: false
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeOutQuart'
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('获取用户增长数据失败:', error);
+                ctx.canvas.classList.remove('loading');
+                
+                // 显示错误信息
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#d32f2f';
+                ctx.textAlign = 'center';
+                ctx.fillText('获取数据失败，请稍后重试', ctx.canvas.width / 2, ctx.canvas.height / 2);
+            });
+    }
+    
+    // 初始化内容访问量热力图
+    let contentHeatmapChart;
+    function initContentHeatmap(days = 7) {
+        // 清除之前的图表
+        if (contentHeatmapChart) {
+            contentHeatmapChart.destroy();
+        }
+        
+        // 设置Canvas上下文
+        const ctx = document.getElementById('contentAccessHeatmap').getContext('2d');
+        
+        // 显示加载状态
+        ctx.canvas.classList.add('loading');
+        
+        // 获取数据
+        fetch(`/cms/api/content-access-heatmap?days=${days}`)
+            .then(response => response.json())
+            .then(data => {
+                // 移除加载状态
+                ctx.canvas.classList.remove('loading');
+                
+                // 准备热力图数据
+                const chartData = [];
+                
+                // 将二维数组转换为Chart.js需要的格式
+                for (let day = 0; day < 7; day++) {
+                    for (let hour = 0; hour < 24; hour++) {
+                        chartData.push({
+                            x: hour,
+                            y: day,
+                            v: data.heatmapData[day][hour] // 访问量
+                        });
+                    }
+                }
+                
+                // 创建热力图
+                contentHeatmapChart = new Chart(ctx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: '访问量',
+                            data: chartData,
+                            backgroundColor: function(context) {
+                                const value = context.raw.v;
+                                // 根据访问量返回不同强度的颜色
+                                if (value === 0) return 'rgba(220, 220, 220, 0.5)';
+                                else if (value < 5) return 'rgba(105, 240, 174, 0.5)';
+                                else if (value < 15) return 'rgba(255, 235, 59, 0.6)';
+                                else if (value < 30) return 'rgba(255, 152, 0, 0.7)';
+                                else return 'rgba(244, 67, 54, 0.8)';
+                            },
+                            pointRadius: function(context) {
+                                const value = context.raw.v;
+                                // 根据访问量调整点的大小
+                                return value === 0 ? 8 : Math.min(8 + (value / 5), 20);
+                            },
+                            pointHoverRadius: function(context) {
+                                const value = context.raw.v;
+                                return value === 0 ? 9 : Math.min(10 + (value / 5), 22);
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: {
+                                type: 'linear',
+                                position: 'bottom',
+                                min: -0.5,
+                                max: 23.5,
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return data.hourLabels[value];
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                title: {
+                                    display: true,
+                                    text: '时间（小时）'
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                min: -0.5,
+                                max: 6.5,
+                                reverse: true, // 反转Y轴，使周一在上方
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return data.weekdayLabels[value];
+                                    }
+                                },
+                                grid: {
+                                    display: true,
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                },
+                                title: {
+                                    display: true,
+                                    text: '星期'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw.v;
+                                        const day = data.weekdayLabels[context.raw.y];
+                                        const hour = data.hourLabels[context.raw.x];
+                                        return `${day} ${hour}: ${value} 次访问`;
+                                    }
+                                },
+                                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                                titleFont: {
+                                    size: 14
+                                },
+                                bodyFont: {
+                                    size: 14
+                                },
+                                padding: 10
+                            },
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: `内容访问时间分布（近${days}天）`,
+                                padding: {
+                                    top: 10,
+                                    bottom: 20
+                                },
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('获取访问量热力图数据失败:', error);
+                ctx.canvas.classList.remove('loading');
+                
+                // 显示错误信息
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#d32f2f';
+                ctx.textAlign = 'center';
+                ctx.fillText('获取数据失败，请稍后重试', ctx.canvas.width / 2, ctx.canvas.height / 2);
+            });
+    }
+    
+    // 事件处理程序
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化
+        updateCurrentTime();
+        initUserGrowthChart(7);
+        initContentHeatmap(7);
+        
+        // 设置进度条
+        setupSystemStatus();
+        
+        // 设置定时器
+        setInterval(updateCurrentTime, 1000);
+        
+        // 用户增长图表日期范围选择
+        document.querySelectorAll('.chart-action').forEach(button => {
+            button.addEventListener('click', function() {
+                // 更新活动状态
+                document.querySelectorAll('.chart-action').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // 更新图表
+                const days = parseInt(this.getAttribute('data-days'));
+                initUserGrowthChart(days);
+            });
+        });
+        
+        // 内容访问热力图日期范围选择
+        document.querySelectorAll('.chart-action-heatmap').forEach(button => {
+            button.addEventListener('click', function() {
+                // 更新活动状态
+                document.querySelectorAll('.chart-action-heatmap').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // 更新图表
+                const days = parseInt(this.getAttribute('data-days'));
+                initContentHeatmap(days);
+            });
+        });
+    });
+
+    function setupSystemStatus() {
+        // 设置CPU负载进度条
+        const cpuProgress = document.getElementById('cpu-progress');
+        if (cpuProgress) {
+            cpuProgress.style.width = '{{ cpu_percent }}%';
+        }
+        
+        // 设置MQTT状态进度条
+        const mqttProgress = document.getElementById('mqtt-progress');
+        if (mqttProgress) {
+            mqttProgress.style.width = '{{ mqtt_percent }}%';
+        }
+        
+        // 设置Redis状态进度条
+        const redisProgress = document.getElementById('redis-progress');
+        if (redisProgress) {
+            redisProgress.style.width = '{{ redis_percent }}%';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+/*
+ * 前台内容区域样式增强
+ * 美化前台页面的内容区域
+ */
+
+/* 内容区域整体样式 */
+.content {
+    background-color: #f8f9fa !important;
+    padding: 20px !important;
+    transition: all 0.3s ease !important;
+}
+
+/* 卡片样式增强 */
+.card,
+.feature-card,
+.stats-card,
+.status-item,
+.quick-action-btn,
+.reset-card,
+.profile-card {
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden !important;
+}
+
+.card:hover,
+.feature-card:hover,
+.stats-card:hover,
+.quick-action-btn:hover,
+.profile-card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* 按钮样式增强 */
+.btn,
+.btn-primary,
+.cta-button,
+.login-button,
+.submit-btn {
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.btn-primary,
+.cta-button,
+.login-button,
+.submit-btn {
+    background: linear-gradient(135deg, #4CAF50, #388E3C) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 10px rgba(76, 175, 80, 0.3) !important;
+}
+
+.btn-primary:hover,
+.cta-button:hover,
+.login-button:hover,
+.submit-btn:hover {
+    background: linear-gradient(135deg, #388E3C, #2E7D32) !important;
+    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+.btn-primary:active,
+.cta-button:active,
+.login-button:active,
+.submit-btn:active {
+    transform: translateY(1px) !important;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4) !important;
+}
+
+/* 输入框样式增强 */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select,
+.form-control {
+    border-radius: 8px !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    padding: 10px 12px !important;
+    background-color: #f8f9fa !important;
+    transition: all 0.3s ease !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus,
+.form-control:focus {
+    border-color: #4CAF50 !important;
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2) !important;
+    background-color: #ffffff !important;
+}
+
+/* 标题和文本样式 */
+h1, h2, h3, h4, h5, h6 {
+    color: #333 !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.5px !important;
+    margin-bottom: 1rem !important;
+}
+
+h1 {
+    font-size: 2.25rem !important;
+}
+
+h2 {
+    font-size: 1.75rem !important;
+}
+
+h3 {
+    font-size: 1.5rem !important;
+}
+
+p {
+    color: #555 !important;
+    line-height: 1.7 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* 图标样式增强 */
+.feature-icon,
+.feature-icon-small,
+.status-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(33, 150, 243, 0.2)) !important;
+    border-radius: 50% !important;
+    width: 50px !important;
+    height: 50px !important;
+    margin-bottom: 15px !important;
+    color: #333 !important;
+    font-size: 24px !important;
+    box-shadow: 0 4px 15px rgba(76, 175, 80, 0.15) !important;
+    transition: all 0.3s ease !important;
+}
+
+.feature-icon:hover,
+.feature-icon-small:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.2) !important;
+}
+
+.feature-icon-small {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 18px !important;
+    margin-bottom: 0 !important;
+    margin-right: 8px !important;
+}
+
+/* 状态指示器样式 */
+.online .status-icon {
+    color: #4CAF50 !important;
+}
+
+.warning .status-icon {
+    color: #FF9800 !important;
+}
+
+.error .status-icon {
+    color: #F44336 !important;
+}
+
+/* 数据统计样式 */
+.stats-number {
+    font-size: 2rem !important;
+    font-weight: 700 !important;
+    color: #333 !important;
+    margin-bottom: 0.25rem !important;
+    letter-spacing: -1px !important;
+}
+
+.stats-label {
+    font-size: 0.875rem !important;
+    color: #666 !important;
+    font-weight: 500 !important;
+}
+
+.highlight-number {
+    color: #4CAF50 !important;
+    font-weight: 700 !important;
+}
+
+/* 表格样式增强 */
+table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    margin-bottom: 1.5rem !important;
+}
+
+th, td {
+    padding: 12px 15px !important;
+    text-align: left !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+th {
+    background-color: #f8f9fa !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+}
+
+tr:last-child td {
+    border-bottom: none !important;
+}
+
+tbody tr:hover {
+    background-color: rgba(76, 175, 80, 0.05) !important;
+}
+
+/* 移动端适配优化 */
+@media (max-width: 768px) {
+    .content {
+        padding: 15px !important;
+    }
+    
+    .stats-card,
+    .feature-card {
+        margin-bottom: 15px !important;
+    }
+    
+    h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    h2 {
+        font-size: 1.5rem !important;
+    }
+    
+    h3 {
+        font-size: 1.25rem !important;
+    }
+    
+    .stats-number {
+        font-size: 1.5rem !important;
+    }
+} 

@@ -1,0 +1,204 @@
+/*
+ * CMS侧边栏样式修复
+ * 解决后台管理系统中侧边栏与页面内容的样式冲突
+ */
+
+/* 后台专用样式覆盖 */
+body.cms-page .sidebar {
+    background: #ffffff !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 后台导航链接样式强化 */
+body.cms-page .sidebar-link {
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.07) !important;
+    margin: 4px 8px !important;
+    padding: 10px 12px !important;
+}
+
+/* 确保活动状态明显 */
+body.cms-page .sidebar-link.active {
+    background: linear-gradient(90deg, rgba(76,175,80,0.3) 0%, rgba(76,175,80,0.2) 100%) !important;
+    border-color: #4CAF50 !important;
+    box-shadow: 0 2px 10px rgba(76, 175, 80, 0.2) !important;
+}
+
+/* 增强CMS图标样式 */
+body.cms-page .sidebar-link svg {
+    width: 22px !important;
+    height: 22px !important;
+    fill: #444 !important;
+    margin-right: 12px !important;
+    transition: all 0.3s ease !important;
+    filter: saturate(0.9) !important;
+    stroke-width: 0.2px !important;
+    stroke: rgba(0,0,0,0.2) !important;
+    position: relative !important;
+}
+
+body.cms-page .sidebar-link:hover svg {
+    fill: #4CAF50 !important;
+    transform: scale(1.1) !important;
+    filter: saturate(1.2) drop-shadow(0 0 1px rgba(76, 175, 80, 0.3)) !important;
+    stroke: rgba(76, 175, 80, 0.4) !important;
+}
+
+body.cms-page .sidebar-link.active svg {
+    fill: #4CAF50 !important;
+    filter: drop-shadow(0 0 3px rgba(76, 175, 80, 0.3)) !important;
+    transform: scale(1.05) !important;
+}
+
+/* 图标容器样式 */
+body.cms-page .sidebar-link {
+    position: relative !important;
+    overflow: visible !important; /* 允许阴影溢出 */
+}
+
+/* 折叠状态下的图标 */
+body.cms-page .sidebar.collapsed .sidebar-link svg {
+    margin-right: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* 为活动的图标添加提示颜色 */
+body.cms-page .sidebar-link.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    height: 60% !important;
+    width: 4px !important;
+    background: linear-gradient(to bottom, #4CAF50, #2E7D32) !important;
+    border-radius: 0 4px 4px 0 !important;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4) !important;
+}
+
+/* 多彩图标主题 */
+/* 概览组图标 */
+body.cms-page .nav-group:nth-child(1) .sidebar-link svg {
+    fill: #4CAF50 !important;
+}
+
+body.cms-page .nav-group:nth-child(1) .sidebar-link:hover svg,
+body.cms-page .nav-group:nth-child(1) .sidebar-link.active svg {
+    fill: #388E3C !important;
+}
+
+/* 用户管理图标 */
+body.cms-page .nav-group:nth-child(2) .sidebar-link svg {
+    fill: #2196F3 !important;
+}
+
+body.cms-page .nav-group:nth-child(2) .sidebar-link:hover svg,
+body.cms-page .nav-group:nth-child(2) .sidebar-link.active svg {
+    fill: #1976D2 !important;
+}
+
+/* 内容管理图标 */
+body.cms-page .nav-group:nth-child(3) .sidebar-link svg {
+    fill: #FF9800 !important;
+}
+
+body.cms-page .nav-group:nth-child(3) .sidebar-link:hover svg,
+body.cms-page .nav-group:nth-child(3) .sidebar-link.active svg {
+    fill: #F57C00 !important;
+}
+
+/* 系统管理图标 */
+body.cms-page .nav-group:nth-child(4) .sidebar-link svg {
+    fill: #9C27B0 !important;
+}
+
+body.cms-page .nav-group:nth-child(4) .sidebar-link:hover svg,
+body.cms-page .nav-group:nth-child(4) .sidebar-link.active svg {
+    fill: #7B1FA2 !important;
+}
+
+/* 给对应的侧边栏链接也添加对应颜色的指示器 */
+body.cms-page .nav-group:nth-child(1) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #4CAF50, #2E7D32) !important;
+}
+
+body.cms-page .nav-group:nth-child(2) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #2196F3, #1565C0) !important;
+}
+
+body.cms-page .nav-group:nth-child(3) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #FF9800, #E65100) !important;
+}
+
+body.cms-page .nav-group:nth-child(4) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #9C27B0, #6A1B9A) !important;
+}
+
+/* 用户面板增强 */
+body.cms-page .user-panel {
+    padding: 10px !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+    background: linear-gradient(to bottom, #ffffff, #f9f9f9) !important;
+}
+
+/* 管理员身份突出显示 */
+body.cms-page .user-role:contains("管理员") {
+    color: #4CAF50 !important;
+    font-weight: 600 !important;
+}
+
+/* 统一导航组样式 */
+body.cms-page .nav-group-title {
+    text-transform: uppercase !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px !important;
+    color: #666 !important;
+    padding-left: 12px !important;
+    margin-bottom: 8px !important;
+}
+
+/* 移动端响应式优化 */
+@media (max-width: 768px) {
+    body.cms-page .sidebar:not(.collapsed) {
+        width: 260px !important; /* 稍微宽一点，提高可读性 */
+    }
+    
+    body.cms-page .mobile-nav-trigger {
+        background: rgba(255, 255, 255, 0.95) !important;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+    }
+}
+
+/* 折叠状态优化 */
+body.cms-page .sidebar.collapsed .sidebar-link {
+    padding: 10px 0 !important;
+    margin: 4px !important;
+    justify-content: center !important; 
+}
+
+/* 确保后台logo正确显示 */
+body.cms-page .logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+/* 内容区域留白优化 */
+body.cms-page .content {
+    padding: 20px !important;
+}
+
+/* 处理特定浏览器兼容性问题 */
+@supports (-webkit-backdrop-filter: none) {
+    body.cms-page .sidebar {
+        -webkit-backdrop-filter: none !important;
+    }
+}
+
+/* 修复Firefox中的边距问题 */
+@-moz-document url-prefix() {
+    body.cms-page .sidebar-link {
+        margin: 5px 8px !important;
+    }
+} 

@@ -1,0 +1,235 @@
+{% extends 'common/front_base.html' %}
+
+{% block title %}【HorizonSafe 界安】--- 登录{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='front/css/auth.css') }}">
+<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    /* 覆盖基础模板中的内容区域样式，使登录页面全屏显示 */
+    .content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* 在登录页面上隐藏侧边栏 */
+    .sidebar, .sidebar-overlay, .mobile-nav-trigger {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-wrapper animate-in">
+    <!-- 左侧介绍区域 -->
+    <div class="intro-container">
+        <div class="intro-content">
+            <!-- 品牌信息 -->
+            <div class="branding">
+                <h1 class="slide-in-left">
+                    <object data="{{ url_for('static', filename='common/svg/logo.svg') }}"
+                          type="image/svg+xml" width="48" height="48">
+                        <img src="{{ url_for('static', filename='common/svg/logo.svg') }}"
+                           alt="慧眼通途" width="48" height="48">
+                    </object>
+                    慧眼通途
+                </h1>
+                <p class="highlight slide-in-left-delay">基于YOLOv11的智能检测平台</p>
+            </div>
+
+            <!-- 功能列表 -->
+            <ul class="feature-list">
+                <li class="feature-item fade-in-up">
+                    <div class="feature-icon pulse"><i class="fas fa-video"></i></div>
+                    <div>
+                        <h3>实时交通流量监控</h3>
+                        <p>毫秒级响应速度，支持千路视频流分析</p>
+                    </div>
+                </li>
+                <li class="feature-item fade-in-up-delay-1">
+                    <div class="feature-icon pulse"><i class="fas fa-brain"></i></div>
+                    <div>
+                        <h3>AI事件自动识别</h3>
+                        <p>98%准确率的异常行为检测算法</p>
+                    </div>
+                </li>
+                <li class="feature-item fade-in-up-delay-2">
+                    <div class="feature-icon pulse"><i class="fas fa-chart-line"></i></div>
+                    <div>
+                        <h3>数据可视化分析</h3>
+                        <p>直观的数据报表和趋势预测</p>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 右侧登录表单区域 -->
+    <div class="form-container">
+        <div class="form-box fade-in">
+            <h2>欢迎登录</h2>
+            <p class="form-subtitle">智能监控，尽在掌握</p>
+            
+            <form method="post" action="{{ url_for('front.login') }}" id="login-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <div class="input-with-icon floating-label">
+                        <input type="text" id="account" name="account" required>
+                        <label for="account">用户名/邮箱/手机号</label>
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="input-with-icon floating-label">
+                        <input type="password" id="password" name="password" required>
+                        <label for="password">密码</label>
+                        <i class="fas fa-lock"></i>
+                        <button type="button" class="toggle-password" onclick="togglePassword()" title="显示/隐藏密码">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-options">
+                    <div class="remember-me">
+                        <input type="checkbox" id="remember" name="remember">
+                        <label for="remember">7天内自动登录</label>
+                    </div>
+                    <a href="{{ url_for('front.forgot_password') }}" class="forgot-link">忘记密码?</a>
+                </div>
+
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="error-messages">
+                            {% for message in messages %}
+                                <p><i class="fas fa-exclamation-circle"></i> {{ message }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="form-group">
+                    <button type="submit" class="btn-primary ripple">
+                        <span>登录</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+            
+            <!-- 社交媒体登录 -->
+            <div class="social-login">
+                <p>快捷登录方式</p>
+                <div class="social-icons">
+                    <a href="#" class="social-icon phone hover-float" title="手机快捷登录">
+                        <i class="fas fa-mobile-alt"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="form-footer">
+                <p>还没有账号? <a href="{{ url_for('front.register') }}" class="register-link">立即注册</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    // 切换密码显示/隐藏
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleButton = document.querySelector('.toggle-password i');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleButton.classList.remove('fa-eye');
+            toggleButton.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleButton.classList.remove('fa-eye-slash');
+            toggleButton.classList.add('fa-eye');
+        }
+    }
+    
+    // 添加表单输入状态管理
+    document.querySelectorAll('input').forEach(input => {
+        // 检查初始状态
+        if (input.value) {
+            input.classList.add('has-value');
+        }
+        
+        // 监听输入变化
+        input.addEventListener('input', function() {
+            if (this.value) {
+                this.classList.add('has-value');
+            } else {
+                this.classList.remove('has-value');
+            }
+        });
+        
+        // 聚焦状态
+        input.addEventListener('focus', function() {
+            this.parentElement.classList.add('focused');
+        });
+        
+        // 失焦状态
+        input.addEventListener('blur', function() {
+            this.parentElement.classList.remove('focused');
+        });
+    });
+    
+    // 波纹效果
+    document.querySelectorAll('.ripple').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const x = e.clientX - e.target.getBoundingClientRect().left;
+            const y = e.clientY - e.target.getBoundingClientRect().top;
+            
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple-effect');
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            this.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+    
+    // 表单验证
+    document.getElementById('login-form').addEventListener('submit', function(event) {
+        const account = document.getElementById('account').value.trim();
+        const password = document.getElementById('password').value;
+        let hasError = false;
+        
+        // 清除之前的错误信息
+        const errorDiv = document.querySelector('.error-messages');
+        if (errorDiv) errorDiv.remove();
+        
+        if (!account) {
+            showError('请输入用户名、邮箱或手机号');
+            hasError = true;
+        } else if (!password) {
+            showError('请输入密码');
+            hasError = true;
+        }
+        
+        if (hasError) {
+            event.preventDefault();
+        }
+    });
+    
+    function showError(message) {
+        const form = document.getElementById('login-form');
+        const submitBtn = form.querySelector('.btn-primary');
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-messages';
+        errorDiv.innerHTML = `<p><i class="fas fa-exclamation-circle"></i> ${message}</p>`;
+        
+        form.insertBefore(errorDiv, submitBtn.parentElement);
+    }
+</script>
+{% endblock %}

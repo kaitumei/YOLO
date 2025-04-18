@@ -1,0 +1,482 @@
+{% extends 'common/front_base.html' %}
+
+{% block title %}【界安】 - 用户注册{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='front/css/auth.css') }}">
+<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    /* 覆盖基础模板中的内容区域样式，使注册页面全屏显示 */
+    .content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* 在注册页面上隐藏侧边栏 */
+    .sidebar, .sidebar-overlay, .mobile-nav-trigger {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 注册表单区域 -->
+<div class="content-wrapper animate-in">
+    <!-- 左侧介绍区域 -->
+    <div class="intro-container">
+        <div class="intro-content">
+            <!-- 品牌信息 -->
+            <div class="branding">
+                <h1 class="slide-in-left">
+                    <object data="{{ url_for('static', filename='common/svg/logo.svg') }}"
+                          type="image/svg+xml" width="48" height="48">
+                        <img src="{{ url_for('static', filename='common/svg/logo.svg') }}"
+                           alt="界安" width="48" height="48">
+                    </object>
+                    【HorizonSafe】界安
+                </h1>
+                <p class="highlight slide-in-left-delay">基于YOLOv11的智能检测平台</p>
+            </div>
+            
+            <!-- 介绍点 -->
+            <div class="features">
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="feature-text">
+                        <h3>安全可靠</h3>
+                        <p>采用先进加密技术保护您的账号安全</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </div>
+                    <div class="feature-text">
+                        <h3>高效便捷</h3>
+                        <p>快速注册流程，立即开始使用系统功能</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <div class="feature-text">
+                        <h3>功能丰富</h3>
+                        <p>注册后即可使用平台所有智能检测能力</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-container">
+        <div class="form-box fade-in">
+            <h2>创建账号</h2>
+            <p class="form-subtitle">加入我们，开启智能监控新体验</p>
+            
+            <!-- 注册方式选项卡 -->
+            <div class="tabs">
+                <div class="tab" id="email-tab">邮箱注册</div>
+                <div class="tab active" id="phone-tab">手机注册</div>
+            </div>
+            
+            <!-- 邮箱注册表单 -->
+            <div class="tab-content" id="email-content">
+                <form method="post" action="{{ url_for('front.register') }}" id="email-register-form">
+                    <input type="hidden" name="register_type" value="email">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="text" id="email-username" name="username" required>
+                            <label for="email-username">用户名</label>
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="email" id="email" name="email" required>
+                            <label for="email">邮箱地址</label>
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                    </div>
+                    <div class="verification-code">
+                        <div class="input-with-icon floating-label">
+                            <input type="text" id="email-captcha" name="captcha" required>
+                            <label for="email-captcha">验证码</label>
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <button type="button" id="email-verification-btn" class="btn-verification clickable">获取验证码</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="password" id="email-password" name="password" required>
+                            <label for="email-password">密码 (至少6位)</label>
+                            <i class="fas fa-lock"></i>
+                            <button type="button" class="toggle-password" onclick="togglePassword('email-password')" title="显示/隐藏密码">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength-container">
+                            <div class="strength-bar" id="email-strength-bar"></div>
+                        </div>
+                        <div class="strength-text" id="email-strength-text"></div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="password" id="email-password2" name="password2" required>
+                            <label for="email-password2">确认密码</label>
+                            <i class="fas fa-lock"></i>
+                            <button type="button" class="toggle-password" onclick="togglePassword('email-password2')" title="显示/隐藏确认密码">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-agreement">
+                        <input type="checkbox" id="email-agreement" required>
+                        <label for="email-agreement">我已阅读并同意<a href="#" class="text-link">服务条款</a>和<a href="#" class="text-link">隐私政策</a></label>
+                    </div>
+                    <button type="submit" class="btn-primary ripple">
+                        <span>注册</span>
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 手机注册表单 -->
+            <div class="tab-content active" id="phone-content">
+                <form method="post" action="{{ url_for('front.register') }}" id="phone-register-form">
+                    <input type="hidden" name="register_type" value="phone">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="text" id="phone-username" name="username" required>
+                            <label for="phone-username">用户名</label>
+                            <i class="fas fa-user"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="text" id="phone" name="phone" required>
+                            <label for="phone">手机号码</label>
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                    </div>
+                    <div class="verification-code">
+                        <div class="input-with-icon floating-label">
+                            <input type="text" id="phone-captcha" name="captcha" required>
+                            <label for="phone-captcha">验证码</label>
+                            <i class="fas fa-key"></i>
+                        </div>
+                        <button type="button" id="phone-verification-btn" class="btn-verification clickable">获取验证码</button>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="password" id="phone-password" name="password" required>
+                            <label for="phone-password">密码 (至少6位)</label>
+                            <i class="fas fa-lock"></i>
+                            <button type="button" class="toggle-password" onclick="togglePassword('phone-password')" title="显示/隐藏密码">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength-container">
+                            <div class="strength-bar" id="phone-strength-bar"></div>
+                        </div>
+                        <div class="strength-text" id="phone-strength-text"></div>
+                    </div>
+                    <div class="form-group">
+                        <div class="input-with-icon floating-label">
+                            <input type="password" id="phone-password2" name="password2" required>
+                            <label for="phone-password2">确认密码</label>
+                            <i class="fas fa-lock"></i>
+                            <button type="button" class="toggle-password" onclick="togglePassword('phone-password2')" title="显示/隐藏确认密码">
+                                <i class="far fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-agreement">
+                        <input type="checkbox" id="phone-agreement" required>
+                        <label for="phone-agreement">我已阅读并同意<a href="#" class="text-link">服务条款</a>和<a href="#" class="text-link">隐私政策</a></label>
+                    </div>
+                    <button type="submit" class="btn-primary ripple">
+                        <span>注册</span>
+                        <i class="fas fa-user-plus"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 错误信息显示 -->
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="error-messages">
+                        {% for message in messages %}
+                            <p><i class="fas fa-exclamation-circle"></i> {{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <div class="form-footer">
+                <p>已有账号? <a href="{{ url_for('front.login') }}" class="login-link">立即登录</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+// 切换密码可见性
+function togglePassword(inputId) {
+    const passwordInput = document.getElementById(inputId);
+    const toggleButton = passwordInput.parentElement.querySelector('.toggle-password i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleButton.classList.remove('fa-eye');
+        toggleButton.classList.add('fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleButton.classList.remove('fa-eye-slash');
+        toggleButton.classList.add('fa-eye');
+    }
+}
+
+// 选项卡切换
+document.getElementById('email-tab').addEventListener('click', function() {
+    document.getElementById('email-tab').classList.add('active');
+    document.getElementById('phone-tab').classList.remove('active');
+    document.getElementById('email-content').classList.add('active');
+    document.getElementById('phone-content').classList.remove('active');
+});
+
+document.getElementById('phone-tab').addEventListener('click', function() {
+    document.getElementById('phone-tab').classList.add('active');
+    document.getElementById('email-tab').classList.remove('active');
+    document.getElementById('phone-content').classList.add('active');
+    document.getElementById('email-content').classList.remove('active');
+});
+
+// 验证码倒计时功能
+function startCountdown(button, seconds) {
+    button.disabled = true;
+    let originalText = button.textContent;
+    
+    const countdown = setInterval(() => {
+        if (seconds <= 0) {
+            clearInterval(countdown);
+            button.textContent = originalText;
+            button.disabled = false;
+        } else {
+            button.textContent = `${seconds}秒后重试`;
+            seconds--;
+        }
+    }, 1000);
+}
+
+// 邮箱验证码按钮点击事件
+document.getElementById('email-verification-btn').addEventListener('click', function() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+        alert('请输入邮箱地址');
+        return;
+    }
+    
+    // 验证邮箱格式
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('请输入正确的邮箱格式');
+        return;
+    }
+    
+    // 禁用按钮，防止重复点击
+    this.disabled = true;
+    
+    // 发送AJAX请求获取验证码
+    $.ajax({
+        url: "/mail/captcha?email=" + encodeURIComponent(email),
+        method: 'GET',
+        success: function(response) {
+            console.log("邮箱验证码响应:", response);
+            if(response && response.code === 200) {
+                alert('验证码发送成功，请查收邮件');
+                startCountdown(document.getElementById('email-verification-btn'), 60);
+            } else {
+                alert(response.message || '验证码发送失败，请稍后再试');
+                document.getElementById('email-verification-btn').disabled = false;
+            }
+        },
+        error: function(xhr) {
+            console.error("验证码请求错误:", xhr);
+            let errorMsg = '验证码发送失败，请稍后再试';
+            try {
+                if(xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+            } catch(e) {
+                console.error("解析错误响应失败:", e);
+            }
+            alert(errorMsg);
+            document.getElementById('email-verification-btn').disabled = false;
+        }
+    });
+});
+
+// 手机验证码按钮点击事件
+document.getElementById('phone-verification-btn').addEventListener('click', function() {
+    const phone = document.getElementById('phone').value.trim();
+    if (!phone) {
+        alert('请输入手机号码');
+        return;
+    }
+    
+    // 验证手机号格式
+    if(!/^1[3-9]\d{9}$/.test(phone)) {
+        alert('请输入正确的手机号格式');
+        return;
+    }
+    
+    // 禁用按钮，防止重复点击
+    this.disabled = true;
+    
+    // 发送AJAX请求获取验证码
+    $.ajax({
+        url: "/sms/captcha?phone=" + encodeURIComponent(phone),
+        method: 'GET',
+        success: function(response) {
+            console.log("验证码响应:", response);
+            if(response && response.code === 200) {
+                alert('验证码发送成功，请注意查收');
+                startCountdown(document.getElementById('phone-verification-btn'), 60);
+            } else {
+                alert(response.message || '验证码发送失败，请稍后再试');
+                document.getElementById('phone-verification-btn').disabled = false;
+            }
+        },
+        error: function(xhr) {
+            console.error("验证码请求错误:", xhr);
+            let errorMsg = '验证码发送失败，请稍后再试';
+            try {
+                if(xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+            } catch(e) {
+                console.error("解析错误响应失败:", e);
+            }
+            alert(errorMsg);
+            document.getElementById('phone-verification-btn').disabled = false;
+        }
+    });
+});
+
+// 密码强度检测
+function checkPasswordStrength(password, strengthBar, strengthText) {
+    // 密码强度评分规则
+    let score = 0;
+    
+    // 长度检查
+    if (password.length >= 6) score += 1;
+    if (password.length >= 10) score += 1;
+    
+    // 包含数字
+    if (/\d/.test(password)) score += 1;
+    
+    // 包含小写字母
+    if (/[a-z]/.test(password)) score += 1;
+    
+    // 包含大写字母
+    if (/[A-Z]/.test(password)) score += 1;
+    
+    // 包含特殊字符
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    // 更新强度条和文本
+    strengthBar.style.width = `${Math.min(100, score * 16.7)}%`;
+    
+    if (score <= 2) {
+        strengthBar.style.backgroundColor = '#ff4d4d';
+        strengthText.textContent = '弱';
+        strengthText.style.color = '#ff4d4d';
+    } else if (score <= 4) {
+        strengthBar.style.backgroundColor = '#ffa64d';
+        strengthText.textContent = '中';
+        strengthText.style.color = '#ffa64d';
+    } else {
+        strengthBar.style.backgroundColor = '#2ecc71';
+        strengthText.textContent = '强';
+        strengthText.style.color = '#2ecc71';
+    }
+}
+
+// 监听密码输入
+document.getElementById('email-password').addEventListener('input', function() {
+    const strengthBar = document.getElementById('email-strength-bar');
+    const strengthText = document.getElementById('email-strength-text');
+    checkPasswordStrength(this.value, strengthBar, strengthText);
+});
+
+document.getElementById('phone-password').addEventListener('input', function() {
+    const strengthBar = document.getElementById('phone-strength-bar');
+    const strengthText = document.getElementById('phone-strength-text');
+    checkPasswordStrength(this.value, strengthBar, strengthText);
+});
+
+// 添加表单输入状态管理
+document.querySelectorAll('input').forEach(input => {
+    // 检查初始状态
+    if (input.value) {
+        input.classList.add('has-value');
+    }
+    
+    // 监听输入变化
+    input.addEventListener('input', function() {
+        if (this.value) {
+            this.classList.add('has-value');
+        } else {
+            this.classList.remove('has-value');
+        }
+    });
+    
+    // 聚焦状态
+    input.addEventListener('focus', function() {
+        this.parentElement.classList.add('focused');
+    });
+    
+    // 失焦状态
+    input.addEventListener('blur', function() {
+        this.parentElement.classList.remove('focused');
+    });
+});
+
+// 波纹效果
+document.querySelectorAll('.ripple').forEach(button => {
+    button.addEventListener('click', function(e) {
+        const x = e.clientX - e.target.getBoundingClientRect().left;
+        const y = e.clientY - e.target.getBoundingClientRect().top;
+        
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple-effect');
+        ripple.style.left = `${x}px`;
+        ripple.style.top = `${y}px`;
+        
+        this.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 600);
+    });
+});
+
+// 表单验证
+document.getElementById('email-register-form').addEventListener('submit', function(event) {
+    // 邮箱注册表单验证逻辑
+    // ...
+});
+
+document.getElementById('phone-register-form').addEventListener('submit', function(event) {
+    // 手机注册表单验证逻辑
+    // ...
+});
+</script>
+{% endblock %}
+

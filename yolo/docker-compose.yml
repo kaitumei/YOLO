@@ -1,0 +1,15 @@
+services:
+  yolo-service:
+    build: .
+    environment:
+      - RTMP_URL=rtmp://192.168.111.148/live/stream
+      - SERVER_URL=http://172.220.78.203:5000
+      - MODEL_PATH=/app/models/yolov11.onnx
+    volumes:
+      - ./models:/app/models  # 模型文件热更新
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+
+
+

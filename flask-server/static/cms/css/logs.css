@@ -1,0 +1,588 @@
+/* 日志管理页面样式 */
+.logs-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logs-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: var(--text-primary);
+}
+
+/* 筛选区域样式 */
+.filters-container {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.filter-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--input-bg);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.1);
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-filter {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-reset {
+    padding: 8px 16px;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+}
+
+.btn-reset svg {
+    fill: currentColor;
+}
+
+.btn-filter:hover {
+    background: var(--primary-hover);
+}
+
+.btn-reset:hover {
+    background: var(--hover-bg);
+}
+
+/* 日志表格样式 */
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logs-table th {
+    background: var(--table-header-bg);
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.logs-table tbody tr:hover {
+    background: var(--hover-bg);
+}
+
+/* 操作按钮样式 */
+.action-cell {
+    display: flex;
+    gap: 8px;
+}
+
+.action-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: var(--border-radius);
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background-color: var(--hover-bg);
+    border: 1px solid var(--border-color);
+}
+
+.action-icon svg {
+    fill: currentColor;
+}
+
+.action-text {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.view-icon {
+    color: var(--info-color);
+}
+
+.view-icon:hover {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: var(--info-color);
+    border-color: var(--info-color);
+}
+
+.delete-icon {
+    color: var(--danger-color);
+}
+
+.delete-icon:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+/* 分页样式 */
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination {
+    display: flex;
+    gap: 5px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pagination li {
+    display: inline-block;
+}
+
+.pagination a,
+.pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.pagination a:hover {
+    background: var(--hover-bg);
+    color: var(--primary-color);
+}
+
+.pagination .active span {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* 清除日志区域样式 */
+.clear-logs-container {
+    margin-top: 30px;
+    padding: 20px;
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--card-shadow);
+}
+
+.clear-logs-title {
+    margin: 0 0 20px;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.clear-logs-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.btn-danger {
+    padding: 8px 16px;
+    background: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-danger svg {
+    fill: currentColor;
+}
+
+.btn-danger:hover {
+    background: var(--danger-hover);
+}
+
+/* 空状态样式 */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.empty-state h3 {
+    margin: 0 0 10px;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* 模态框样式 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 500px;
+    box-shadow: var(--card-shadow);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px;
+    transition: all 0.3s ease;
+}
+
+.close-modal:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .filter-form {
+        grid-template-columns: 1fr;
+    }
+    
+    .logs-table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .logs-table thead {
+        display: none;
+    }
+    
+    .logs-table tbody tr {
+        display: block;
+        margin-bottom: 15px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+    }
+    
+    .logs-table td {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 15px;
+        border: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .logs-table td:last-child {
+        border-bottom: none;
+    }
+    
+    .logs-table td::before {
+        content: attr(data-label);
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+    
+    .action-cell {
+        justify-content: flex-end;
+    }
+}
+
+/* 日志详情页面样式 */
+.log-detail-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.log-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.log-detail-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: var(--text-primary);
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    color: var(--primary-hover);
+}
+
+.log-detail-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+.log-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.meta-item {
+    padding: 12px;
+    background: var(--hover-bg);
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease;
+}
+
+.meta-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.meta-item-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.meta-item-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.log-details-title {
+    margin: 20px 0 15px;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.json-viewer {
+    background: var(--hover-bg);
+    border-radius: var(--border-radius);
+    padding: 15px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+}
+
+.actions-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* 响应式设计 - 日志详情 */
+@media (max-width: 768px) {
+    .log-meta {
+        grid-template-columns: 1fr;
+    }
+    
+    .log-detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .actions-container {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .actions-container .btn-reset,
+    .actions-container .btn-danger {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+}
+
+/* 表头内容样式 */
+.th-content {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.th-content svg {
+    fill: var(--text-secondary);
+}
+
+.th-content span {
+    display: inline-block;
+}
+
+/* 操作类型徽章 */
+.action-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.action-login {
+    background-color: rgba(0, 123, 255, 0.1);
+    color: #007bff;
+}
+
+.action-register {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+}
+
+.action-password {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.action-edit {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+}
+
+.action-delete {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+/* Action other badge */
+.action-other {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+} 

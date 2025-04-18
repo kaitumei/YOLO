@@ -1,0 +1,270 @@
+/*
+ * 前台侧边栏样式增强
+ * 提升前台页面侧边栏的视觉效果和用户体验
+ */
+
+/* 侧边栏整体样式优化 */
+.sidebar {
+    background: #ffffff !important;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.08) !important;
+    border-right: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+/* 前台导航组样式 */
+.nav-group {
+    margin: 10px 0 25px 0 !important;
+    position: relative !important;
+}
+
+.nav-group-title {
+    font-size: 12px !important;
+    color: #555 !important;
+    letter-spacing: 0.3px !important;
+    padding-left: 12px !important;
+    margin-bottom: 8px !important;
+    position: relative !important;
+    display: block !important;
+}
+
+/* 为导航组标题添加小图标 */
+.nav-group-title::before {
+    content: '•' !important;
+    position: absolute !important;
+    left: 2px !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    color: #4CAF50 !important;
+}
+
+/* 多彩导航图标 */
+/* 概览分组图标 */
+.nav-group:nth-child(1) .sidebar-link svg {
+    fill: #4CAF50 !important;
+}
+
+.nav-group:nth-child(1) .sidebar-link:hover svg,
+.nav-group:nth-child(1) .sidebar-link.active svg {
+    fill: #2E7D32 !important;
+}
+
+/* 监控功能分组图标 */
+.nav-group:nth-child(2) .sidebar-link svg {
+    fill: #2196F3 !important;
+}
+
+.nav-group:nth-child(2) .sidebar-link:hover svg,
+.nav-group:nth-child(2) .sidebar-link.active svg {
+    fill: #1565C0 !important;
+}
+
+/* 管理功能分组图标 */
+.nav-group:nth-child(3) .sidebar-link svg {
+    fill: #FF9800 !important;
+}
+
+.nav-group:nth-child(3) .sidebar-link:hover svg,
+.nav-group:nth-child(3) .sidebar-link.active svg {
+    fill: #E65100 !important;
+}
+
+/* 系统分组图标 */
+.nav-group:nth-child(4) .sidebar-link svg {
+    fill: #9C27B0 !important;
+}
+
+.nav-group:nth-child(4) .sidebar-link:hover svg,
+.nav-group:nth-child(4) .sidebar-link.active svg {
+    fill: #6A1B9A !important;
+}
+
+/* 为侧边栏链接添加活动状态指示器 */
+.sidebar-link.active::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    height: 50% !important;
+    width: 3px !important;
+    border-radius: 0 3px 3px 0 !important;
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* 为不同分组的活动链接添加不同颜色的指示器 */
+.nav-group:nth-child(1) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #4CAF50, #2E7D32) !important;
+}
+
+.nav-group:nth-child(2) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #2196F3, #1565C0) !important;
+}
+
+.nav-group:nth-child(3) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #FF9800, #E65100) !important;
+}
+
+.nav-group:nth-child(4) .sidebar-link.active::before {
+    background: linear-gradient(to bottom, #9C27B0, #6A1B9A) !important;
+}
+
+/* 导航链接样式优化 */
+.sidebar-link {
+    border-radius: 12px !important;
+    margin: 4px 8px !important;
+    padding: 10px 12px !important;
+    background-color: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.sidebar-link:hover {
+    background-color: #f5f9f5 !important;
+    border-color: rgba(76, 175, 80, 0.15) !important;
+    transform: translateX(5px) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06) !important;
+}
+
+.sidebar-link.active {
+    background: linear-gradient(90deg, 
+        rgba(76, 175, 80, 0.2) 0%, 
+        rgba(76, 175, 80, 0.05) 100%) !important;
+    border-color: rgba(76, 175, 80, 0.3) !important;
+    box-shadow: 0 3px 10px rgba(76, 175, 80, 0.1) !important;
+}
+
+/* 导航图标优化 */
+.sidebar-link svg {
+    width: 22px !important;
+    height: 22px !important;
+    margin-right: 10px !important;
+    transition: all 0.3s ease !important;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.1)) !important;
+}
+
+/* 折叠状态样式优化 */
+.sidebar.collapsed .sidebar-link {
+    justify-content: center !important;
+    padding: 12px 0 !important;
+    margin: 8px 6px !important;
+}
+
+.sidebar.collapsed .sidebar-link svg {
+    margin-right: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* 用户面板美化 */
+.user-panel {
+    padding: 10px !important;
+    border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+    background: linear-gradient(to bottom, #ffffff, #f8f8f8) !important;
+    margin-top: auto !important;
+}
+
+.user-row {
+    display: flex !important;
+    align-items: center !important;
+    padding: 8px !important;
+    border-radius: 12px !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03) !important;
+    border: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+
+.user-avatar {
+    flex-shrink: 0 !important;
+}
+
+.header-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+    transition: transform 0.3s ease !important;
+}
+
+.header-avatar:hover {
+    transform: scale(1.1) !important;
+}
+
+.user-info {
+    margin: 0 10px !important;
+    flex-grow: 1 !important;
+    overflow: hidden !important;
+}
+
+.user-name {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    color: #333 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.user-role {
+    font-size: 12px !important;
+    color: #666 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 管理员角色高亮 */
+.user-role:contains("管理员") {
+    color: #4CAF50 !important;
+    font-weight: 500 !important;
+}
+
+/* 退出按钮美化 */
+.logout-btn.solid-btn {
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background-color: #f0f0f0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    transition: all 0.3s ease !important;
+}
+
+.logout-btn.solid-btn:hover {
+    background-color: #e0e0e0 !important;
+    transform: rotate(-12deg) !important;
+}
+
+.logout-btn.solid-btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    fill: #666 !important;
+    transition: fill 0.3s ease !important;
+}
+
+.logout-btn.solid-btn:hover svg {
+    fill: #e53935 !important;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+    .sidebar:not(.collapsed) {
+        width: 260px !important;
+    }
+    
+    .mobile-nav-trigger {
+        background: #ffffff !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+        border-radius: 50% !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    .sidebar-overlay {
+        backdrop-filter: blur(2px) !important;
+        -webkit-backdrop-filter: blur(2px) !important;
+    }
+} 

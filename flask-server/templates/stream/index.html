@@ -1,0 +1,130 @@
+{% extends "common/front_base.html" %}
+
+{% block title %}流媒体服务{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stream/css/stream.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>流媒体服务中心</h1>
+        <p class="subtitle">高性能流媒体服务平台，支持多种摄像头接入和实时转码</p>
+    </div>
+    
+    <div class="service-section">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="service-card">
+                    <div class="service-card-img" data-image="camera" aria-label="IP摄像头图片">
+                        <div class="card-badge">便捷接入</div>
+                    </div>
+                    <div class="service-card-body">
+                        <h5 class="service-card-title">IP摄像头推流</h5>
+                        <p class="service-card-text">将IP摄像头RTSP流推送到SRS流媒体服务器。支持自定义视频和音频参数，可选择不同的编码方式。</p>
+                        <a href="/stream/rtmp-push" class="btn btn-primary">
+                            <i class="fas fa-video" aria-hidden="true"></i>
+                            开始使用
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="service-card">
+                    <div class="service-card-img" data-image="dashboard" aria-label="推流管理图片">
+                        <div class="card-badge">实时监控</div>
+                    </div>
+                    <div class="service-card-body">
+                        <h5 class="service-card-title">推流管理</h5>
+                        <p class="service-card-text">查看当前活动的所有媒体流，包括详细信息和操作控制。管理员可以停止任意流并监控流状态。</p>
+                        <a href="/stream/streams" class="btn btn-primary">
+                            <i class="fas fa-list" aria-hidden="true"></i>
+                            查看列表
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="server-info">
+        <h4><i class="fas fa-server"></i> 默认RTMP服务器地址</h4>
+        <div class="server-address">rtmp://127.0.0.1/live/livestream
+            <button class="copy-btn" id="copyServerAddress" aria-label="复制服务器地址">
+                <i class="fas fa-copy" aria-hidden="true"></i> 复制
+            </button>
+        </div>
+        <p class="rtmp-info"><i class="fas fa-info-circle"></i> 您可以使用OBS Studio、FFmpeg或其他支持RTMP的工具连接到此服务器进行直播</p>
+        <div class="tools-section">
+            <h5><i class="fas fa-toolbox"></i> 推荐工具</h5>
+            <div class="tools-list">
+                <div class="tool-item">
+                    <img src="https://obsproject.com/assets/images/new_icon_small-r.png" alt="OBS Studio 图标">
+                    <a href="https://obsproject.com/" target="_blank" rel="noopener noreferrer">OBS Studio</a>
+                </div>
+                <div class="tool-item">
+                    <img src="https://ffmpeg.org/favicon.ico" alt="FFmpeg 图标">
+                    <a href="https://ffmpeg.org/" target="_blank" rel="noopener noreferrer">FFmpeg</a>
+                </div>
+                <div class="tool-item">
+                    <img src="https://ts1.tc.mm.bing.net/th/id/R-C.b5bb305d48afbeacde95663e0be31de4?rik=J0Y2t2IlGA7NyQ&riu=http%3a%2f%2fpic.pdowncc.com%2fupload%2f2015-2%2f201521235252.png&ehk=7bom2WZA99%2bcROaUrduaDrn5nk6ILOlWylmAoMSMLCw%3d&risl=&pid=ImgRaw&r=0" alt="VLC Player 图标">
+                    <a href="https://www.videolan.org/vlc/" target="_blank" rel="noopener noreferrer">VLC Player</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stats-section">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-video"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ active_streams|default(0) }}</div>
+                <div class="stat-label">活动推流</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-eye"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ viewers|default(0) }}</div>
+                <div class="stat-label">当前观看</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <div class="stat-number">{{ bandwidth|default('0 KB/s') }}</div>
+                <div class="stat-label">带宽使用</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 复制服务器地址功能
+    document.getElementById('copyServerAddress').addEventListener('click', function() {
+        const serverAddress = document.querySelector('.server-address').textContent.trim();
+        navigator.clipboard.writeText(serverAddress)
+            .then(() => {
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                
+                setTimeout(() => {
+                    this.innerHTML = originalHtml;
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('复制失败:', err);
+            });
+    });
+});
+</script>
+{% endblock %} 

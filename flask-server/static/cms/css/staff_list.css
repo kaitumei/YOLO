@@ -1,0 +1,201 @@
+/* 基础样式重置 */
+.management-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 工具栏样式 */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.section-title {
+    font-size: 24px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+/* 按钮通用样式 */
+.primary-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.primary-button:hover {
+    background-color: #2980b9;
+}
+
+.search-button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    margin-left: 10px;
+    height: 40px;
+}
+
+.search-button:hover {
+    background-color: #2980b9;
+}
+
+.icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    margin-right: 8px;
+}
+
+/* 表格容器 */
+.table-container {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* 数据表格样式 */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.data-table th,
+.data-table td {
+    text-align: left;
+    padding: 16px 20px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.data-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #34495e;
+}
+
+.data-table tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* 权限标签样式 */
+.role-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    background-color: #e8f4fc;
+    color: #3498db;
+    border-radius: 15px;
+    font-size: 0.875em;
+    font-weight: 500;
+}
+
+/* 分页样式 */
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 30px;
+    padding: 15px 0;
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border: 1px solid #bdc3c7;
+    border-radius: 5px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover {
+    border-color: #3498db;
+    color: #3498db;
+}
+
+.arrow {
+    width: 20px;
+    height: 20px;
+}
+
+.prev .arrow {
+    margin-right: 8px;
+}
+
+.next .arrow {
+    margin-left: 8px;
+    transform: rotate(180deg);
+}
+
+.page-info {
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+/* 操作按钮 */
+.action-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.edit-btn {
+    color: #27ae60;
+    border: 1px solid #27ae60;
+}
+
+.edit-btn:hover {
+    background: #e8f8f0;
+}
+
+/* 响应式处理 */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none;
+    }
+
+    .data-table td {
+        padding: 12px 15px;
+    }
+
+    .toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .pagination-wrapper {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .data-table td[data-label] {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .data-table td[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #34495e;
+        margin-right: 15px;
+    }
+}

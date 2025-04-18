@@ -1,0 +1,32 @@
+# Python 字节码和缓存文件
+*.py[cod]
+__pycache__/
+*.so
+*.egg-info/
+dist/
+build/
+# 虚拟环境（如 venv、.venv、Pipenv）
+venv/
+.venv/
+.env/
+Pipfile.lock
+# JetBrains IDE（如 PyCharm）
+.idea/
+*.iml
+# VS Code
+.vscode/
+*.code-workspace
+# macOS 系统文件
+.DS_Store
+.Spotlight-V100
+.Trashes
+# 环境配置（如 Flask 的 .env）
+.env
+.env.local
+*.key
+*.pem
+# 日志文件
+*.log
+logs/
+# 用户上传的媒体文件（如 Flask 的 media/）
+media/

@@ -1,0 +1,224 @@
+{% extends "common/cms_base.html" %}
+
+{% block title %}【慧眼通途】---添加后台用户{% endblock %}
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='cms/css/cms_common.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='cms/css/add_staff.css') }}">
+{% endblock %}
+{% block content %}
+<div class="content">
+    <div class="form-container">
+        <h2>添加后台用户</h2>
+        <form method="POST" class="staff-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">
+                                <div class="alert-content">
+                                    {% if category == 'danger' %}
+                                    <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                        <line x1="12" y1="16" x2="12" y2="16"/>
+                                    </svg>
+                                    {% elif category == 'success' %}
+                                    <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                    {% endif %}
+                                    <span>{{ message }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                <small class="text-secondary">用户名将用于登录和显示</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">邮箱地址</label>
+                <input type="email" id="email" name="email" placeholder="请输入有效的邮箱地址" required>
+                <small class="text-secondary">邮箱将用作账号登录名，请确保邮箱地址正确</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">手机号码</label>
+                <input type="tel" id="phone" name="phone" placeholder="请输入手机号码">
+                <small class="text-secondary">可选，用于接收通知和找回密码</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                <small class="text-secondary">密码长度至少6位</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="password_confirm">确认密码</label>
+                <input type="password" id="password_confirm" name="password_confirm" placeholder="请再次输入密码" required>
+                <small class="text-secondary">请确保两次输入的密码一致</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="role_id">用户角色</label>
+                <select id="role_id" name="role_id" required>
+                    <option value="">请选择用户角色</option>
+                    {% for role in roles %}
+                        <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+                <small class="text-secondary">不同角色拥有不同的权限</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="button">
+                    <span class="button-text">创建用户</span>
+                </button>
+                <a href="{{ url_for('cms.staff_list') }}" class="cancel">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.staff-form');
+        const usernameInput = document.getElementById('username');
+        const emailInput = document.getElementById('email');
+        const phoneInput = document.getElementById('phone');
+        const passwordInput = document.getElementById('password');
+        const passwordConfirmInput = document.getElementById('password_confirm');
+        const roleSelect = document.getElementById('role_id');
+        const submitButton = form.querySelector('button[type="submit"]');
+        const buttonText = submitButton.querySelector('.button-text');
+        
+        // 添加输入框焦点效果
+        [usernameInput, emailInput, phoneInput, passwordInput, passwordConfirmInput, roleSelect].forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.classList.remove('focused');
+            });
+        });
+        
+        // 实时验证
+        usernameInput.addEventListener('input', function() {
+            validateUsername(this);
+        });
+        
+        emailInput.addEventListener('input', function() {
+            validateEmail(this);
+        });
+        
+        phoneInput.addEventListener('input', function() {
+            validatePhone(this);
+        });
+        
+        passwordInput.addEventListener('input', function() {
+            validatePassword(this);
+            if (passwordConfirmInput.value) {
+                validatePasswordConfirm(passwordConfirmInput);
+            }
+        });
+        
+        passwordConfirmInput.addEventListener('input', function() {
+            validatePasswordConfirm(this);
+        });
+        
+        roleSelect.addEventListener('change', function() {
+            validateRole(this);
+        });
+        
+        form.addEventListener('submit', function(event) {
+            const isUsernameValid = validateUsername(usernameInput);
+            const isEmailValid = validateEmail(emailInput);
+            const isPhoneValid = phoneInput.value ? validatePhone(phoneInput) : true;
+            const isPasswordValid = validatePassword(passwordInput);
+            const isPasswordConfirmValid = validatePasswordConfirm(passwordConfirmInput);
+            const isRoleValid = validateRole(roleSelect);
+            
+            if (!isUsernameValid || !isEmailValid || !isPhoneValid || !isPasswordValid || !isPasswordConfirmValid || !isRoleValid) {
+                event.preventDefault();
+                return;
+            }
+            
+            // 显示加载状态
+            submitButton.classList.add('loading');
+            buttonText.textContent = '创建中...';
+            submitButton.disabled = true;
+        });
+        
+        function validateUsername(input) {
+            const isValid = input.value.length >= 2 && input.value.length <= 20;
+            updateFieldState(input, isValid, '用户名长度应为2-20个字符');
+            return isValid;
+        }
+        
+        function validateEmail(input) {
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            const isValid = emailPattern.test(input.value);
+            updateFieldState(input, isValid, '请输入有效的邮箱地址');
+            return isValid;
+        }
+        
+        function validatePhone(input) {
+            // 中国大陆手机号格式：1开头的11位数字
+            const phonePattern = /^1[3-9]\d{9}$/;
+            const isValid = !input.value || phonePattern.test(input.value);
+            updateFieldState(input, isValid, '请输入有效的手机号码');
+            return isValid;
+        }
+        
+        function validatePassword(input) {
+            const isValid = input.value.length >= 6;
+            updateFieldState(input, isValid, '密码长度至少6位');
+            return isValid;
+        }
+        
+        function validatePasswordConfirm(input) {
+            const isValid = input.value === passwordInput.value;
+            updateFieldState(input, isValid, '两次输入的密码不一致');
+            return isValid;
+        }
+        
+        function validateRole(select) {
+            const isValid = select.value !== '';
+            updateFieldState(select, isValid, '请选择用户角色');
+            return isValid;
+        }
+        
+        function updateFieldState(element, isValid, errorMessage) {
+            const formGroup = element.parentElement;
+            
+            // 移除之前的错误提示
+            const existingError = formGroup.querySelector('.text-danger');
+            if (existingError) {
+                existingError.remove();
+            }
+            
+            if (!isValid) {
+                element.style.borderColor = 'var(--danger-color)';
+                const errorElement = document.createElement('small');
+                errorElement.className = 'text-danger';
+                errorElement.textContent = errorMessage;
+                formGroup.appendChild(errorElement);
+            } else {
+                element.style.borderColor = '';
+            }
+        }
+    });
+</script>
+{% endblock %}

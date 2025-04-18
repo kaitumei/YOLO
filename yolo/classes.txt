@@ -1,0 +1,12 @@
+0 car
+1 bus
+2 tanker
+3 container_truck
+4 truck
+5 van
+6 pickup
+7 special_vehicle
+8 license_plate
+9 accident
+10 illegal_parking
+11 overspeed 

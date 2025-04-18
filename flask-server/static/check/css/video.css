@@ -1,0 +1,85 @@
+/* 优化视频播放器容器 */
+.video-container {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 视频控制按钮美化 */
+.video-controls button {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.video-controls button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 视频容器共用样式 */
+.video-container video {
+    width: 100%;
+    display: block;
+}
+
+/* 检测结果展示的共用样式 */
+.detection-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.detection-item:last-child {
+    border-bottom: none;
+}
+
+.detection-item .badge {
+    margin-right: 10px;
+}
+
+/* 上传框样式 */
+.upload-box {
+    border: 2px dashed #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    transition: all 0.3s ease;
+}
+
+.upload-box:hover {
+    border-color: #007bff;
+    background-color: #f0f7ff;
+}
+
+/* 结果框样式 */
+.result-box {
+    background-color: #fff;
+    border-radius: 5px;
+    padding: 15px;
+}
+
+/* 进度条样式 */
+.progress {
+    height: 20px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .card-header h3 {
+        font-size: 1.5rem;
+    }
+    
+    .section {
+        margin-bottom: 20px;
+    }
+}

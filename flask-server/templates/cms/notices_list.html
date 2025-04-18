@@ -1,0 +1,287 @@
+{% extends "common/cms_base.html" %}
+
+{% block title %}【慧眼通途】---公告管理{% endblock %}
+{% block css %}
+    <style>
+        .notice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .notice-table th,
+        .notice-table td {
+            padding: 12px 15px;
+            text-align: left;
+        }
+        
+        .notice-table thead {
+            background-color: #3f51b5;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .notice-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .notice-table tbody tr:hover {
+            background-color: #e9ecef;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        
+        .status-enabled {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .status-disabled {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        .add-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        
+        .add-btn:hover {
+            background-color: #0069d9;
+            color: white;
+        }
+        
+        .edit-btn {
+            background-color: #17a2b8;
+            color: white;
+        }
+        
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .view-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .notice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .notice-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            background-color: #f8f9fa;
+            border-radius: 0.25rem;
+            margin: 20px 0;
+            color: #6c757d;
+        }
+        
+        .truncate-text {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: inline-block;
+        }
+        
+        .inline-form {
+            display: inline;
+        }
+        
+        /* 删除确认框样式 */
+        .delete-confirm-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+            padding: 20px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .modal-title {
+            margin-top: 0;
+            color: #dc3545;
+        }
+        
+        .modal-btns {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        
+        .confirm-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="notice-header">
+        <h1 class="notice-title">公告管理</h1>
+        <a href="{{ url_for('cms.notice_add') }}" class="add-btn">
+            <i class="fas fa-plus"></i> 添加公告
+        </a>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    {% if notices %}
+        <table class="notice-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>标题</th>
+                    <th>内容</th>
+                    <th>排序</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for notice in notices %}
+                    <tr>
+                        <td>{{ notice.id }}</td>
+                        <td>{{ notice.title }}</td>
+                        <td><span class="truncate-text">{{ notice.content }}</span></td>
+                        <td>{{ notice.sort_order }}</td>
+                        <td>
+                            {% if notice.status == 1 %}
+                                <span class="status-badge status-enabled">启用</span>
+                            {% else %}
+                                <span class="status-badge status-disabled">禁用</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ notice.create_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('cms.notice_view', notice_id=notice.id) }}" class="action-btn view-btn">
+                                <i class="fas fa-eye"></i> 查看
+                            </a>
+                            <a href="{{ url_for('cms.notice_edit', notice_id=notice.id) }}" class="action-btn edit-btn">
+                                <i class="fas fa-edit"></i> 编辑
+                            </a>
+                            <button class="action-btn delete-btn" onclick="showDeleteModal('{{ notice.id }}')">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="empty-message">
+            <i class="fas fa-info-circle fa-2x mb-3"></i>
+            <p>暂无公告数据</p>
+            <p>点击上方"添加公告"按钮来创建第一个公告</p>
+        </div>
+    {% endif %}
+    
+    <!-- 删除确认模态框 -->
+    <div id="deleteModal" class="delete-confirm-modal">
+        <div class="modal-content">
+            <h3 class="modal-title">确认删除</h3>
+            <p>您确定要删除这个公告吗？此操作不可恢复。</p>
+            <div class="modal-btns">
+                <button type="button" class="cancel-btn" onclick="hideDeleteModal()">取消</button>
+                <form id="deleteForm" method="POST" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="confirm-btn">确认删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <script>
+        function showDeleteModal(noticeId) {
+            var modal = document.getElementById('deleteModal');
+            var form = document.getElementById('deleteForm');
+            form.action = "/cms/notices/delete/" + noticeId;
+            modal.style.display = 'block';
+        }
+        
+        function hideDeleteModal() {
+            var modal = document.getElementById('deleteModal');
+            modal.style.display = 'none';
+        }
+        
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            var modal = document.getElementById('deleteModal');
+            if (event.target == modal) {
+                hideDeleteModal();
+            }
+        }
+    </script>
+{% endblock %} 

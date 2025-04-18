@@ -1,0 +1,132 @@
+{% extends 'common/cms_base.html' %}
+
+{% block title %}日志详情{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='cms/css/logs.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="log-detail-container">
+    <div class="log-detail-header">
+        <h1>日志详情</h1>
+        <a href="{{ url_for('cms.logs_list') }}" class="back-link">
+            <i class="fas fa-arrow-left"></i> 返回日志列表
+        </a>
+    </div>
+    
+    <div class="log-detail-card">
+        <div class="log-meta">
+            <div class="meta-item">
+                <div class="meta-item-label">日志ID</div>
+                <div class="meta-item-value">{{ log.id }}</div>
+            </div>
+            
+            <div class="meta-item">
+                <div class="meta-item-label">用户</div>
+                <div class="meta-item-value">
+                    {% if log.user %}
+                        {{ log.user.username }}（ID: {{ log.user_id }}）
+                    {% else %}
+                        未知用户（ID: {{ log.user_id }}）
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="meta-item">
+                <div class="meta-item-label">操作类型</div>
+                <div class="meta-item-value">{{ log.action }}</div>
+            </div>
+            
+            <div class="meta-item">
+                <div class="meta-item-label">IP地址</div>
+                <div class="meta-item-value">{{ log.ip_address or '未知' }}</div>
+            </div>
+            
+            <div class="meta-item">
+                <div class="meta-item-label">设备信息</div>
+                <div class="meta-item-value">{{ log.device_info or '未知' }}</div>
+            </div>
+            
+            <div class="meta-item">
+                <div class="meta-item-label">操作时间</div>
+                <div class="meta-item-value">{{ log.create_time.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+            </div>
+        </div>
+        
+        {% if log_details %}
+        <h2 class="log-details-title">详细信息</h2>
+        <div class="json-viewer" id="json-viewer">{{ log_details_formatted }}</div>
+        {% endif %}
+        
+        <div class="actions-container">
+            <a href="{{ url_for('cms.logs_list') }}" class="btn-reset">
+                <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+                返回
+            </a>
+            <button type="button" class="btn-danger" onclick="confirmDelete()">
+                <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+                删除日志
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal" id="deleteModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">确认删除</h5>
+            <button type="button" class="close-modal" onclick="closeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p>您确定要删除此日志记录吗？此操作无法撤销。</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-reset" onclick="closeModal()">取消</button>
+            <form action="{{ url_for('cms.delete_log', log_id=log.id) }}" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-danger">删除</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+    // 显示模态框
+    function showModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+        document.body.classList.add('modal-open');
+    }
+    
+    // 关闭模态框
+    function closeModal() {
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.classList.remove('show');
+        });
+        document.body.classList.remove('modal-open');
+    }
+    
+    // 确认删除
+    function confirmDelete() {
+        showModal('deleteModal');
+    }
+    
+    // 点击模态框背景关闭
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        });
+    });
+</script>
+{% endblock %} 

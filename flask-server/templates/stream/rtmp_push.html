@@ -1,0 +1,484 @@
+{% extends "common/front_base.html" %}
+
+{% block title %}IP摄像头推流{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='stream/css/stream.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>IP摄像头推送到流媒体服务器</h1>
+        <p class="subtitle">将IP摄像头视频流推送至SRS流媒体服务器，支持多种编码和参数设置</p>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-cog"></i> 推流信息配置</h3>
+        <div class="server-summary">
+            <div class="server-info-item">
+                <span class="info-label">服务器状态:</span>
+                <span class="server-status online">在线</span>
+            </div>
+            <div class="server-info-item">
+                <span class="info-label">推流地址:</span>
+                <span class="server-url">{{ rtmp_server }}</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="camera_url"><i class="fas fa-video"></i> IP摄像头RTSP地址:</label>
+            <input type="text" id="camera_url" class="form-control" placeholder="例如: rtsp://用户名:密码@摄像头IP:端口/流ID" />
+            <small><i class="fas fa-info-circle"></i> 通常格式为: rtsp://admin:密码@192.168.1.100:554/cam/realmonitor?channel=1&subtype=0</small>
+        </div>
+        
+        <details>
+            <summary>高级参数设置</summary>
+            <div>
+                <h4><i class="fas fa-film"></i> 视频参数</h4>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="video_codec">视频编码器:</label>
+                            <select id="video_codec" class="form-control">
+                                <option value="copy">原始编码 (不转码)</option>
+                                <option value="h264">H.264</option>
+                                <option value="h265">H.265</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="video_bitrate">视频比特率:</label>
+                            <input type="text" id="video_bitrate" class="form-control" placeholder="例如: 2000k" disabled />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="video_size">视频尺寸:</label>
+                            <select id="video_size" class="form-control" disabled>
+                                <option value="">原始尺寸</option>
+                                <option value="1920x1080">1080p (1920x1080)</option>
+                                <option value="1280x720">720p (1280x720)</option>
+                                <option value="854x480">480p (854x480)</option>
+                                <option value="640x360">360p (640x360)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="video_framerate">视频帧率:</label>
+                            <select id="video_framerate" class="form-control" disabled>
+                                <option value="">原始帧率</option>
+                                <option value="30">30 fps</option>
+                                <option value="25">25 fps</option>
+                                <option value="24">24 fps</option>
+                                <option value="20">20 fps</option>
+                                <option value="15">15 fps</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4><i class="fas fa-volume-up"></i> 音频参数</h4>
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="audio_codec">音频编码器:</label>
+                            <select id="audio_codec" class="form-control">
+                                <option value="copy">原始编码 (不转码)</option>
+                                <option value="aac">AAC</option>
+                                <option value="mp3">MP3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="audio_bitrate">音频比特率:</label>
+                            <select id="audio_bitrate" class="form-control">
+                                <option value="">默认</option>
+                                <option value="128k">128k</option>
+                                <option value="64k">64k</option>
+                                <option value="32k">32k</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="audio_sample_rate">音频采样率:</label>
+                            <select id="audio_sample_rate" class="form-control">
+                                <option value="44100">44.1 kHz</option>
+                                <option value="48000">48 kHz</option>
+                                <option value="22050">22.05 kHz</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-col">
+                        <div class="form-group">
+                            <label for="audio_channels">音频通道数:</label>
+                            <select id="audio_channels" class="form-control">
+                                <option value="1">单声道 (1)</option>
+                                <option value="2">立体声 (2)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+        
+        <div class="push-button-wrapper">
+            <button id="push_button" class="btn btn-primary">
+                <i class="fas fa-play"></i> 推送到流媒体服务器
+            </button>
+            <button id="stop_button" class="btn btn-danger hidden">
+                <i class="fas fa-stop"></i> 停止推送
+            </button>
+        </div>
+    </div>
+    
+    <div id="status_message" class="alert hidden"></div>
+    
+    <div class="card video-container hidden" id="video_container">
+        <h3><i class="fas fa-play-circle"></i> 流媒体预览</h3>
+        <p>您可以通过以下地址访问推送的流:</p>
+        <ul class="stream-url-list">
+            <li>
+                <strong><i class="fas fa-broadcast-tower"></i> RTMP:</strong> 
+                <span id="rtmp_url">{{ rtmp_server }}</span>
+                <button class="stream-url-copy" data-url="{{ rtmp_server }}">
+                    <i class="fas fa-copy"></i> 复制
+                </button>
+            </li>
+            <li>
+                <strong><i class="fas fa-film"></i> HTTP-FLV:</strong> 
+                <span id="flv_url"></span>
+                <button class="stream-url-copy" data-target="flv_url">
+                    <i class="fas fa-copy"></i> 复制
+                </button>
+            </li>
+            <li>
+                <strong><i class="fas fa-list"></i> HLS:</strong> 
+                <span id="hls_url"></span>
+                <button class="stream-url-copy" data-target="hls_url">
+                    <i class="fas fa-copy"></i> 复制
+                </button>
+            </li>
+        </ul>
+        <div id="player_wrapper" class="stream-preview">
+            <div class="player-controls">
+                <button class="player-btn" id="play-btn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="player-btn" id="fullscreen-btn">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h3><i class="fas fa-info-circle"></i> 相关推流指引</h3>
+        <div class="guide-content">
+            <p>如需了解更多关于IP摄像头推流的信息，请参考以下资源:</p>
+            <ul class="guide-list">
+                <li>确保您的IP摄像头支持RTSP协议</li>
+                <li>检查摄像头的用户名和密码是否正确</li>
+                <li>确保您的网络环境能够访问摄像头</li>
+                <li>如果推流失败，请检查摄像头RTSP地址格式是否正确</li>
+            </ul>
+            
+            <div class="connection-help">
+                <h4><i class="fas fa-lightbulb"></i> 常见问题解决</h4>
+                <div class="help-items">
+                    <div class="help-item">
+                        <h5>无法连接摄像头</h5>
+                        <p>检查摄像头IP地址是否可以ping通，用户名密码是否正确，确保摄像头支持RTSP协议。</p>
+                    </div>
+                    <div class="help-item">
+                        <h5>视频卡顿</h5>
+                        <p>尝试降低视频质量或帧率，检查网络带宽是否足够。</p>
+                    </div>
+                    <div class="help-item">
+                        <h5>无法查看直播</h5>
+                        <p>确认SRS服务器运行状态，检查播放端是否支持相应格式。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <a href="/stream" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> 返回首页
+            </a>
+            <a href="/stream/streams" class="btn btn-primary">
+                <i class="fas fa-list"></i> 查看流列表
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pushButton = document.getElementById('push_button');
+    const stopButton = document.getElementById('stop_button');
+    const statusMessage = document.getElementById('status_message');
+    const videoContainer = document.getElementById('video_container');
+    const cameraUrlInput = document.getElementById('camera_url');
+    const flvUrlElement = document.getElementById('flv_url');
+    const hlsUrlElement = document.getElementById('hls_url');
+    
+    // 高级参数
+    const videoCodecSelect = document.getElementById('video_codec');
+    const videoBitrateInput = document.getElementById('video_bitrate');
+    const videoSizeSelect = document.getElementById('video_size');
+    const videoFramerateSelect = document.getElementById('video_framerate');
+    const audioCodecSelect = document.getElementById('audio_codec');
+    const audioBitrateSelect = document.getElementById('audio_bitrate');
+    const audioSampleRateSelect = document.getElementById('audio_sample_rate');
+    const audioChannelsSelect = document.getElementById('audio_channels');
+    
+    let currentStreamId = null;
+    
+    // 根据选择的视频编码器切换参数可用性
+    videoCodecSelect.addEventListener('change', function() {
+        const isTranscoding = this.value !== 'copy';
+        videoBitrateInput.disabled = !isTranscoding;
+        videoSizeSelect.disabled = !isTranscoding;
+        videoFramerateSelect.disabled = !isTranscoding;
+        
+        if (!isTranscoding) {
+            videoBitrateInput.value = '';
+            videoSizeSelect.value = '';
+            videoFramerateSelect.value = '';
+        }
+    });
+    
+    // 从RTMP URL生成HTTP-FLV和HLS URL
+    function generateStreamUrls(rtmpUrl) {
+        // 解析RTMP URL
+        // 格式: rtmp://server:port/app/stream
+        const rtmpRegex = /rtmp:\/\/([^\/]+)(?::(\d+))?\/([^\/]+)\/(.+)/;
+        const matches = rtmpUrl.match(rtmpRegex);
+        
+        if (!matches) return { flvUrl: '', hlsUrl: '' };
+        
+        const server = matches[1];
+        const port = matches[2] || '8080'; // 默认HTTP端口
+        const app = matches[3];
+        const stream = matches[4];
+        
+        // 构建HTTP-FLV URL
+        const flvUrl = `http://${server}:${port}/${app}/${stream}.flv`;
+        
+        // 构建HLS URL
+        const hlsUrl = `http://${server}:${port}/${app}/${stream}.m3u8`;
+        
+        return { flvUrl, hlsUrl };
+    }
+    
+    // 获取CSRF令牌
+    function getCsrfToken() {
+        return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    }
+    
+    // 显示状态消息
+    function showMessage(message, type) {
+        statusMessage.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'danger' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
+        statusMessage.className = 'alert alert-' + type;
+        statusMessage.classList.remove('hidden');
+        
+        // 5秒后自动隐藏消息
+        setTimeout(() => {
+            statusMessage.classList.add('hidden');
+        }, 5000);
+    }
+    
+    // 推送按钮事件
+    pushButton.addEventListener('click', function() {
+        const cameraUrl = cameraUrlInput.value.trim();
+        
+        if (!cameraUrl) {
+            showMessage('请输入有效的IP摄像头RTSP地址', 'danger');
+            return;
+        }
+        
+        // 禁用按钮，防止重复提交
+        pushButton.disabled = true;
+        pushButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 推送中...';
+        
+        // 收集所有参数
+        const videoParams = {
+            video_codec: videoCodecSelect.value,
+            video_bitrate: videoBitrateInput.value || null,
+            video_size: videoSizeSelect.value || null,
+            video_framerate: videoFramerateSelect.value || null,
+            audio_codec: audioCodecSelect.value,
+            audio_bitrate: audioBitrateSelect.value || null,
+            audio_sample_rate: audioSampleRateSelect.value,
+            audio_channels: audioChannelsSelect.value
+        };
+        
+        // 发送API请求
+        fetch('/stream/api/push-ipcam', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                camera_url: cameraUrl,
+                ...videoParams
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                currentStreamId = data.stream_id;
+                showMessage(data.message, 'success');
+                
+                // 生成流媒体URL
+                const { flvUrl, hlsUrl } = generateStreamUrls(data.rtmp_server);
+                flvUrlElement.textContent = flvUrl;
+                hlsUrlElement.textContent = hlsUrl;
+                
+                // 显示视频容器和停止按钮
+                videoContainer.classList.remove('hidden');
+                pushButton.classList.add('hidden');
+                stopButton.classList.remove('hidden');
+                
+                // 滚动到视频容器
+                videoContainer.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showMessage(data.message || '推送失败', 'danger');
+                pushButton.disabled = false;
+                pushButton.innerHTML = '<i class="fas fa-play"></i> 推送到流媒体服务器';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('发生错误: ' + error.message, 'danger');
+            pushButton.disabled = false;
+            pushButton.innerHTML = '<i class="fas fa-play"></i> 推送到流媒体服务器';
+        });
+    });
+    
+    // 停止按钮事件
+    stopButton.addEventListener('click', function() {
+        // 禁用按钮，防止重复提交
+        stopButton.disabled = true;
+        stopButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 停止中...';
+        
+        // 如果没有流ID，直接重置UI
+        if (!currentStreamId) {
+            resetUI();
+            return;
+        }
+        
+        // 发送停止推流的API请求
+        fetch('/stream/api/stop-push', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                stream_id: currentStreamId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+            } else {
+                showMessage(data.message || '停止推送失败', 'danger');
+            }
+            
+            // 无论成功或失败，都重置UI
+            resetUI();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('发生错误: ' + error.message, 'danger');
+            resetUI();
+        });
+    });
+    
+    // 重置UI
+    function resetUI() {
+        currentStreamId = null;
+        videoContainer.classList.add('hidden');
+        stopButton.classList.add('hidden');
+        stopButton.disabled = false;
+        stopButton.innerHTML = '<i class="fas fa-stop"></i> 停止推送';
+        pushButton.classList.remove('hidden');
+        pushButton.disabled = false;
+        pushButton.innerHTML = '<i class="fas fa-play"></i> 推送到流媒体服务器';
+    }
+    
+    // 复制URL到剪贴板
+    document.querySelectorAll('.stream-url-copy').forEach(function(button) {
+        button.addEventListener('click', function() {
+            let url;
+            const dataUrl = this.getAttribute('data-url');
+            const dataTarget = this.getAttribute('data-target');
+            
+            if (dataUrl) {
+                url = dataUrl;
+            } else if (dataTarget) {
+                url = document.getElementById(dataTarget).textContent;
+            }
+            
+            if (!url) return;
+            
+            // 创建临时文本区域
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                // 执行复制命令
+                document.execCommand('copy');
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i> 已复制';
+                
+                // 2秒后恢复原始文本
+                setTimeout(() => {
+                    this.innerHTML = originalHtml;
+                }, 2000);
+            } catch (err) {
+                console.error('复制失败:', err);
+            }
+            
+            document.body.removeChild(textarea);
+        });
+    });
+    
+    // 播放器控制按钮（示例功能）
+    document.getElementById('play-btn').addEventListener('click', function() {
+        // 这里是播放功能示例
+        this.innerHTML = this.innerHTML.includes('fa-play') ? 
+            '<i class="fas fa-pause"></i>' : 
+            '<i class="fas fa-play"></i>';
+    });
+    
+    document.getElementById('fullscreen-btn').addEventListener('click', function() {
+        const player = document.getElementById('player_wrapper');
+        if (!document.fullscreenElement) {
+            if (player.requestFullscreen) {
+                player.requestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

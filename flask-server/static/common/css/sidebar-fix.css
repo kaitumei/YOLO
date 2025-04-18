@@ -1,0 +1,144 @@
+/* 
+ * 侧边栏样式修复
+ * 解决侧边栏与页面内容的样式冲突
+ */
+
+/* 确保侧边栏在适当位置固定 */
+.sidebar {
+    position: fixed !important;
+    z-index: 1000 !important;
+    background: #ffffff !important;
+}
+
+/* 移除可能的负面影响 */
+.sidebar * {
+    box-sizing: border-box !important;
+}
+
+/* 确保内容区域不被侧边栏覆盖 */
+.content {
+    transition: margin 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* 确保侧边栏链接正确的颜色和样式 */
+.sidebar-link {
+    text-decoration: none !important;
+    box-shadow: none !important;
+    border-radius: 10px !important;
+}
+
+/* 确保图标正确显示 */
+.sidebar-link svg {
+    width: 22px !important;
+    height: 22px !important;
+    fill: #555 !important;
+    margin-right: 12px !important;
+    transition: transform 0.3s ease, fill 0.3s ease !important;
+    vertical-align: middle !important;
+}
+
+.sidebar-link:hover svg {
+    fill: #4CAF50 !important;
+    transform: scale(1.1) !important;
+}
+
+.sidebar-link.active svg {
+    fill: #4CAF50 !important;
+    filter: drop-shadow(0 0 2px rgba(76, 175, 80, 0.4)) !important;
+}
+
+/* 确保导航组标题正确显示 */
+.nav-group-title {
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    color: #333 !important;
+}
+
+/* 确保激活状态正确显示 */
+.sidebar-link.active {
+    background: linear-gradient(90deg, rgba(76,175,80,0.25) 0%, rgba(76,175,80,0.15) 100%) !important;
+    border-color: #4CAF50 !important;
+}
+
+/* 用户面板修复 */
+.user-panel {
+    margin-top: auto !important;
+    border-top: 1px solid #e0e0e0 !important;
+}
+
+/* 确保用户信息正确显示 */
+.user-name {
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    color: #333 !important;
+}
+
+.user-role {
+    font-size: 12px !important;
+    color: #666 !important;
+}
+
+/* 确保头像正确显示 */
+.header-avatar {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important;
+}
+
+/* 移动端适配修复 */
+@media (max-width: 768px) {
+    .sidebar:not(.collapsed) {
+        box-shadow: 16px 0 40px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .sidebar-overlay {
+        z-index: 999 !important;
+    }
+    
+    .mobile-nav-trigger {
+        display: flex !important;
+        z-index: 1001 !important;
+    }
+    
+    .content {
+        margin-left: 0 !important;
+    }
+}
+
+/* 强制应用不透明度，确保侧边栏和导航始终可见 */
+.sidebar {
+    background: rgba(255, 255, 255, 1) !important;
+}
+
+.sidebar-link {
+    background-color: #ffffff !important;
+    opacity: 1 !important;
+    border: 1px solid rgba(0,0,0,0.08) !important;
+}
+
+/* 确保折叠状态下的侧边栏正确显示 */
+.sidebar.collapsed {
+    width: 70px !important;
+}
+
+.sidebar:not(.collapsed) {
+    width: 240px !important;
+}
+
+/* 折叠状态下的图标优化 */
+.sidebar.collapsed .sidebar-link svg {
+    margin-right: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+}
+
+/* 添加图标微动效 */
+@keyframes icon-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+    100% { transform: scale(1); }
+}
+
+.sidebar-link:active svg {
+    animation: icon-pulse 0.4s ease-out !important;
+} 

@@ -1,0 +1,134 @@
+services:
+  web: 
+    build: .  # 构建镜像
+    container_name: web
+    restart: unless-stopped  # 重启策略
+    env_file: .env  # 环境变量文件
+    depends_on:
+      - db  # 依赖 db 服务
+      - redis  # 依赖 redis 服务
+    volumes: 
+      - ./media:/app/media
+      - ./static:/app/static
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  
+  db:
+    image: mysql:8.0.41
+    container_name: db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysqlpasswd
+      - MYSQL_DATABASE=hytt
+      - MYSQL_USER=HYTT
+      - MYSQL_PASSWORD=mysqlpasswd
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    networks:
+      - backend
+      
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - backend 
+
+  celery:
+    build: .  # 复用 web 服务的构建镜像
+    container_name: celery
+    restart: always
+    env_file: .env
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./media:/app/media  # 共享媒体文件（如果需要）
+      - ./static:/app/static
+    command: celery -A app.celery worker --loglevel=info --pool=gevent --concurrency=4
+    networks:
+      - backend
+
+  srs:
+    image: ossrs/srs:6
+    container_name: srs
+    restart: always
+    ports:
+      - "8000:8000/udp"  # WebRTC UDP端口
+      - "8000:8000/tcp"  # 新增TCP映射
+      - "1985:1985"
+      - "1935:1935"
+      - "8080:8080"
+      - "8088:8088" 
+      - "1990:1990" 
+    volumes:
+      - ./docker/srs/conf/:/usr/local/srs/conf/  # 挂载自定义配置文件
+      - ./docker/nginx/certs/:/usr/local/srs/conf/certs/      # 挂载SSL证书
+    networks:
+      - backend
+
+  wechat-server:
+    build: ./docker/node
+    container_name: wechat-server
+    restart: always
+    env_file: ./docker/node/.env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./static:/app/static
+      - ./media:/app/media
+      - ./docker/node/static:/app/static
+    networks:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.3'
+          memory: 256M
+
+  nginx:
+    image: nginx:1.21.3-alpine
+    container_name: nginx
+    restart: always  # 重启策略
+    ports:
+      - "80:80" 
+      - "443:443"
+    volumes:
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./docker/nginx/certs/:/etc/nginx/certs/     # SSL证书目录
+      - ./static:/app/static
+      - ./media:/app/media
+    depends_on:
+      - web  # 依赖 flask 服务
+      - srs  # 依赖 srs 推流器
+      - wechat-server  # 依赖 wechat 服务
+    networks:
+      - backend
+
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  backend:
+    driver: bridge
+

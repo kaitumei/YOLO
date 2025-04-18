@@ -1,0 +1,2272 @@
+{% extends "common/front_base.html" %}
+
+{% block title %}【界安】 - 地图服务{% endblock %}
+
+{% block css %}
+<style>
+/* 确保地图内容占据整个可用空间，不受侧边栏影响 */
+.content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+}
+
+#map-container {
+    width: 100%;
+    height: calc(100vh - 20px);
+    position: relative;
+    overflow: hidden;
+}
+#map-sidebar {
+    width: 320px;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+    background-color: rgba(255, 255, 255, 0.98);
+    box-shadow: -2px 0 10px rgba(0,0,0,0.15);
+    z-index: 100;
+    padding: 15px;
+    overflow-y: auto;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 10px 0 0 10px;
+}
+#map-sidebar.collapsed {
+    right: -320px;
+}
+#map-sidebar:hover {
+    background-color: rgba(255, 255, 255, 1);
+    box-shadow: -3px 0 15px rgba(0,0,0,0.2);
+}
+#map-view {
+    width: 100%;
+    height: 100%;
+}
+.search-box {
+    margin-bottom: 15px;
+}
+.location-item {
+    cursor: pointer;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    transition: all 0.3s;
+}
+.location-item:hover {
+    background-color: #f5f5f5;
+}
+.control-panel {
+    margin-top: 10px;
+}
+#toggle-map-sidebar {
+    position: absolute;
+    top: 15px;
+    right: 330px;
+    z-index: 101;
+    padding: 0;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#toggle-map-sidebar.collapsed {
+    right: 15px;
+}
+#toggle-map-sidebar:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.05);
+}
+#toggle-map-sidebar:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+    #map-sidebar {
+        width: 280px;
+    }
+    #map-sidebar.collapsed {
+        right: -280px;
+    }
+    .panel-body {
+        padding: 8px;
+    }
+    .map-nav-tab {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #map-sidebar {
+        width: 85%;
+        max-width: 300px;
+    }
+    #map-sidebar.collapsed {
+        right: -100%;
+    }
+}
+#search-result {
+    margin-top: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 4px;
+    border: 1px solid #f0f0f0;
+}
+.marker-info {
+    margin-top: 15px;
+}
+.route-result {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f8f9fa;
+}
+.favorite-location {
+    padding: 8px 12px;
+    margin-bottom: 5px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+.favorite-location:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    transform: translateY(-1px);
+}
+/* 路线相关样式 */
+.route-steps {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+.route-step {
+    padding: 5px 0;
+    border-bottom: 1px dashed #eee;
+    line-height: 1.3;
+}
+.saved-route {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.saved-route:hover {
+    background-color: #e9ecef;
+}
+.saved-route-info {
+    padding: 8px 10px;
+}
+.saved-route-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.saved-route-detail {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+/* 新增导航面板样式 */
+.panel-section {
+    margin-bottom: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    border-bottom: 1px solid #e9ecef;
+}
+.panel-header:hover {
+    background-color: #e9ecef;
+}
+.panel-header h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+.panel-body {
+    padding: 12px;
+    background-color: #fff;
+}
+.panel-header .toggle-icon {
+    transition: transform 0.3s;
+}
+.panel-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+.panel-body.collapsed {
+    display: none;
+}
+.map-nav-tabs {
+    display: flex;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #dee2e6;
+}
+.map-nav-tab {
+    padding: 8px 15px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+}
+.map-nav-tab.active {
+    border-bottom-color: #0d6efd;
+    color: #0d6efd;
+}
+.map-tab-content {
+    display: none;
+}
+.map-tab-content.active {
+    display: block;
+}
+/* 添加路线图例样式 */
+.route-legend {
+    position: absolute;
+    bottom: 55px;
+    right: 15px;
+    z-index: 99;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 4px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    display: none;
+}
+.route-legend.active {
+    display: block;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+.legend-color {
+    width: 16px;
+    height: 4px;
+    margin-right: 6px;
+    border-radius: 2px;
+}
+.legend-driving { background-color: #0078FF; }
+.legend-transit { background-color: #00A15F; }
+.legend-walking { background-color: #FF6600; }
+.legend-riding { background-color: #9933FF; }
+/* 添加当前位置按钮样式 */
+#my-location-btn {
+    position: absolute;
+    bottom: 145px;
+    right: 15px;
+    z-index: 99;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: white;
+    border: none;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+#my-location-btn:hover {
+    background-color: #f8f9fa;
+    transform: scale(1.05);
+}
+#my-location-btn:active {
+    transform: scale(0.95);
+}
+#my-location-btn i {
+    color: #0d6efd;
+    font-size: 18px;
+}
+#my-location-btn.locating i {
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* 自定义路线相关样式 */
+.custom-route-waypoint {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #1E88E5;
+    border-radius: 50%;
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    cursor: pointer;
+    z-index: 10;
+}
+
+.custom-route-waypoint:hover {
+    background-color: #FFC107;
+    transform: scale(1.5);
+}
+
+.saved-routes-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.saved-route {
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    margin-bottom: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.saved-route-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.saved-route-detail {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.route-legend .custom-route {
+    background-color: #2196F3;
+}
+</style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+{% endblock %}
+
+{% block content %}
+<div id="map-container">
+    <div id="map-sidebar">
+        <h4 class="mb-3">地图控制面板</h4>
+        
+        <!-- 顶部标签页导航 -->
+        <div class="map-nav-tabs">
+            <div class="map-nav-tab active" data-tab="search">搜索</div>
+            <div class="map-nav-tab" data-tab="tools">工具</div>
+            <div class="map-nav-tab" data-tab="layers">图层</div>
+        </div>
+        
+        <!-- 搜索标签页内容 -->
+        <div class="map-tab-content active" id="search-tab">
+            <div class="search-box">
+                <div class="input-group">
+                    <input type="text" id="search-input" class="form-control" placeholder="搜索地点...">
+                    <button class="btn btn-primary" id="search-btn" title="搜索">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+                <div id="search-result"></div>
+            </div>
+            
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>常用城市</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <div class="btn-group mb-2 w-100" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="北京">北京</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="上海">上海</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="广州">广州</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="深圳">深圳</button>
+                    </div>
+                    <div class="btn-group w-100" role="group">
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="长沙">长沙</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="武汉">武汉</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="成都">成都</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary city-btn" data-city="重庆">重庆</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 收藏位置管理 -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>我的收藏</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <div class="mb-2 d-flex">
+                        <input type="text" id="favorite-name" class="form-control form-control-sm me-2" placeholder="收藏名称...">
+                        <button id="add-favorite-btn" class="btn btn-success btn-sm" title="添加收藏">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                    <div id="favorites-list">
+                        <!-- 收藏位置将显示在这里 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 工具标签页内容 -->
+        <div class="map-tab-content" id="tools-tab">
+            <!-- 路线规划部分 -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>路线规划</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <div class="d-flex mb-2 align-items-center">
+                        <input type="text" id="start-point" class="form-control form-control-sm me-1" placeholder="起点...">
+                        <button class="btn btn-sm btn-outline-secondary" id="select-start-btn" title="在地图上选择">
+                            <i class="fa fa-map-marker"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary ms-1" id="use-current-location-btn" title="使用当前位置">
+                            <i class="fa fa-location-arrow"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex mb-2 align-items-center">
+                        <input type="text" id="end-point" class="form-control form-control-sm me-1" placeholder="终点...">
+                        <button class="btn btn-sm btn-outline-secondary" id="select-end-btn" title="在地图上选择">
+                            <i class="fa fa-map-marker"></i>
+                        </button>
+                    </div>
+                    <div class="mb-2">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary route-mode-btn" data-mode="driving">驾车</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary route-mode-btn" data-mode="transit">公交</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary route-mode-btn" data-mode="walking">步行</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary route-mode-btn" data-mode="riding">骑行</button>
+                        </div>
+                    </div>
+                    <div class="d-flex mb-2">
+                        <button id="route-search-btn" class="btn btn-primary btn-sm flex-grow-1">规划路线</button>
+                        <button id="save-route-btn" class="btn btn-outline-success btn-sm ms-2" title="保存路线">
+                            <i class="fa fa-save"></i>
+                        </button>
+                        <button id="clear-route-btn" class="btn btn-outline-danger btn-sm ms-2" title="清除路线">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                    <div id="route-result" class="route-result d-none">
+                        <!-- 路线结果将显示在这里 -->
+                    </div>
+                    
+                    <!-- 常用路线 -->
+                    <div class="mt-3 common-routes">
+                        <p class="small text-muted mb-2">常用路线</p>
+                        <div id="saved-routes-list">
+                            <div class="text-muted small">暂无保存的路线</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 自定义路线规划 -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>自定义路线</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <p class="small text-muted mb-2">手动绘制您的自定义路线</p>
+                    <div class="mb-2">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="custom-route-start-btn">设置起点</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="custom-route-drawing-btn">绘制路线</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="custom-route-end-btn">设置终点</button>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-success" id="custom-route-save-btn">保存路线</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="custom-route-clear-btn">清除</button>
+                        </div>
+                    </div>
+                    <div class="form-group mb-2">
+                        <select class="form-select form-select-sm" id="custom-route-color">
+                            <option value="#FF5252">红色</option>
+                            <option value="#4CAF50">绿色</option>
+                            <option value="#2196F3" selected>蓝色</option>
+                            <option value="#9C27B0">紫色</option>
+                            <option value="#FF9800">橙色</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-2">
+                        <select class="form-select form-select-sm" id="custom-route-weight">
+                            <option value="3">细</option>
+                            <option value="5" selected>中</option>
+                            <option value="8">粗</option>
+                        </select>
+                    </div>
+                    <div id="custom-route-info" class="small text-muted mt-2 d-none">
+                        <!-- 自定义路线信息将显示在这里 -->
+                    </div>
+                    
+                    <!-- 已保存的自定义路线列表 -->
+                    <div class="mt-3">
+                        <p class="small text-muted mb-2">已保存的自定义路线</p>
+                        <div id="custom-routes-list" class="saved-routes-list">
+                            <!-- 自定义路线列表将显示在这里 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 标记点管理 -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>标记点信息</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <p class="small text-muted">点击地图添加标记点</p>
+                    <div id="marker-list">
+                        <div class="alert alert-info">暂无标记点</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 地图类型切换 -->
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>地图类型</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary map-type-btn flex-grow-1 mx-1" data-type="normal">常规地图</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary map-type-btn flex-grow-1 mx-1" data-type="earth">卫星影像</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary map-type-btn flex-grow-1 mx-1" data-type="dark">暗黑模式</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 图层标签页内容 -->
+        <div class="map-tab-content" id="layers-tab">
+            <div class="panel-section">
+                <div class="panel-header">
+                    <h5>图层控制</h5>
+                    <i class="fa fa-angle-down toggle-icon"></i>
+                </div>
+                <div class="panel-body">
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="traffic-layer" checked>
+                        <label class="form-check-label" for="traffic-layer">交通流量</label>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="subway-layer">
+                        <label class="form-check-label" for="subway-layer">地铁线路</label>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" id="poi-layer">
+                        <label class="form-check-label" for="poi-layer">兴趣点</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="building-layer">
+                        <label class="form-check-label" for="building-layer">3D建筑</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button id="toggle-map-sidebar" title="切换侧边栏">
+        <i class="fa fa-chevron-right"></i>
+    </button>
+
+    <button id="my-location-btn" title="显示我的位置">
+        <i class="fa fa-location-arrow"></i>
+    </button>
+    
+    <!-- 添加路线图例 -->
+    <div id="route-legend" class="route-legend">
+        <div class="legend-item">
+            <div class="legend-color legend-driving"></div>
+            <span>驾车路线</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color legend-transit"></div>
+            <span>公交路线</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color legend-walking"></div>
+            <span>步行路线</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color legend-riding"></div>
+            <span>骑行路线</span>
+        </div>
+    </div>
+
+    <div id="map-view"></div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script src="https://api.map.baidu.com/api?type=webgl&v=1.0&ak=NiHKtaxt5JnN2k3bqpb3xzbO9DoiGDIq"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// 初始化地图
+var map = new BMapGL.Map('map-view');
+map.centerAndZoom('长沙', 12);
+map.enableScrollWheelZoom(true);
+
+// 添加地图控件（移除LocationControl避免与自定义my-location-btn重复）
+map.addControl(new BMapGL.ScaleControl({
+    anchor: BMAP_ANCHOR_BOTTOM_LEFT,  // 放在左下角
+    offset: new BMapGL.Size(10, 30)    // 添加偏移量
+}));
+map.addControl(new BMapGL.ZoomControl({
+    anchor: BMAP_ANCHOR_BOTTOM_RIGHT,  // 放在右下角
+    offset: new BMapGL.Size(15, 80)    // 偏移量，避免与自定义的定位按钮重叠
+}));
+
+// 初始化交通流量图层
+var trafficLayer = new BMapGL.TrafficLayer();
+map.addTileLayer(trafficLayer);
+
+// 初始化默认选中项
+document.querySelector('.route-mode-btn[data-mode="driving"]').classList.add('active');
+document.querySelector('.map-type-btn[data-type="normal"]').classList.add('active');
+
+// 初始化收藏列表
+var favorites = [];
+if (localStorage.getItem('mapFavorites')) {
+    favorites = JSON.parse(localStorage.getItem('mapFavorites'));
+    updateFavoritesList();
+} else {
+    document.getElementById('favorites-list').innerHTML = '<div class="text-muted">暂无收藏位置</div>';
+}
+
+// 标记点数组
+var markers = [];
+
+// 添加标记点
+map.addEventListener('click', function(e) {
+    if (isSelectingStartPoint || isSelectingEndPoint) {
+        // 地址解析
+        var geocoder = new BMapGL.Geocoder();
+        geocoder.getLocation(e.latlng, function(result) {
+            if (result) {
+                if (isSelectingStartPoint) {
+                    document.getElementById('start-point').value = result.address;
+                    isSelectingStartPoint = false;
+                    document.getElementById('select-start-btn').classList.remove('active');
+                } else if (isSelectingEndPoint) {
+                    document.getElementById('end-point').value = result.address;
+                    isSelectingEndPoint = false;
+                    document.getElementById('select-end-btn').classList.remove('active');
+                }
+                map.setDefaultCursor('pointer');
+            }
+        });
+        
+        // 防止触发添加标记点
+        return;
+    }
+    
+    // 处理自定义路线相关点击
+    if (customRouteMode === 'start') {
+        // 设置起点
+        if (customRouteStartMarker) {
+            map.removeOverlay(customRouteStartMarker);
+        }
+        var point = new BMapGL.Point(e.latlng.lng, e.latlng.lat);
+        customRouteStartMarker = new BMapGL.Marker(point, {
+            icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                imageSize: new BMapGL.Size(600, 600),
+                anchor: new BMapGL.Size(19, 25),
+                imageOffset: new BMapGL.Size(0, 0)
+            })
+        });
+        map.addOverlay(customRouteStartMarker);
+        
+        // 初始化路线点
+        customRoutePoints = [e.latlng];
+        
+        // 添加起点信息窗口
+        var infoWindow = new BMapGL.InfoWindow("自定义路线起点", {
+            width: 200,
+            height: 40,
+            title: "起点信息"
+        });
+        customRouteStartMarker.addEventListener('click', function() {
+            this.openInfoWindow(infoWindow);
+        });
+        customRouteStartMarker.openInfoWindow(infoWindow);
+        
+        // 重置模式
+        customRouteMode = 'none';
+        document.getElementById('custom-route-start-btn').classList.remove('active');
+        map.setDefaultCursor('pointer');
+        
+        return;
+    } else if (customRouteMode === 'drawing' && isCustomRouteDrawing) {
+        // 添加路线点
+        customRoutePoints.push(e.latlng);
+        
+        // 更新路线显示
+        updateCustomRouteLine();
+        
+        return;
+    } else if (customRouteMode === 'end') {
+        // 设置终点
+        if (customRouteEndMarker) {
+            map.removeOverlay(customRouteEndMarker);
+        }
+        var point = new BMapGL.Point(e.latlng.lng, e.latlng.lat);
+        customRouteEndMarker = new BMapGL.Marker(point, {
+            icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                imageSize: new BMapGL.Size(600, 600),
+                anchor: new BMapGL.Size(19, 25),
+                imageOffset: new BMapGL.Size(0, 300)
+            })
+        });
+        map.addOverlay(customRouteEndMarker);
+        
+        // 添加最后一个路线点
+        customRoutePoints.push(e.latlng);
+        
+        // 更新路线显示
+        updateCustomRouteLine();
+        
+        // 添加终点信息窗口
+        var infoWindow = new BMapGL.InfoWindow("自定义路线终点", {
+            width: 200,
+            height: 40,
+            title: "终点信息"
+        });
+        customRouteEndMarker.addEventListener('click', function() {
+            this.openInfoWindow(infoWindow);
+        });
+        customRouteEndMarker.openInfoWindow(infoWindow);
+        
+        // 显示路线信息
+        updateCustomRouteInfo();
+        
+        // 重置模式
+        customRouteMode = 'none';
+        document.getElementById('custom-route-end-btn').classList.remove('active');
+        map.setDefaultCursor('pointer');
+        
+        return;
+    }
+    
+    // 原有的添加标记点逻辑
+    var marker = new BMapGL.Marker(new BMapGL.Point(e.latlng.lng, e.latlng.lat));
+    map.addOverlay(marker);
+    
+    var infoWindow = new BMapGL.InfoWindow("标记位置: " + e.latlng.lat.toFixed(4) + ", " + e.latlng.lng.toFixed(4), {
+        width: 220,
+        height: 60,
+        title: "位置信息"
+    });
+    
+    marker.addEventListener('click', function() {
+        this.openInfoWindow(infoWindow);
+    });
+    
+    // 添加到标记点列表
+    markers.push({
+        id: markers.length + 1,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        marker: marker
+    });
+    
+    // 更新标记点列表UI
+    updateMarkerList();
+});
+
+// 更新标记点列表
+function updateMarkerList() {
+    var markerListHtml = '';
+    
+    if (markers.length === 0) {
+        markerListHtml = '<div class="alert alert-info">暂无标记点</div>';
+    } else {
+        markerListHtml = '<div class="list-group">';
+        markers.forEach(function(m) {
+            markerListHtml += `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>标记 #${m.id}</span>
+                    <button class="btn btn-sm btn-danger" onclick="removeMarker(${m.id - 1})">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            `;
+        });
+        markerListHtml += '</div>';
+    }
+    
+    document.getElementById('marker-list').innerHTML = markerListHtml;
+}
+
+// 删除标记点
+function removeMarker(index) {
+    map.removeOverlay(markers[index].marker);
+    markers.splice(index, 1);
+    updateMarkerList();
+}
+
+// 搜索功能
+document.getElementById('search-btn').addEventListener('click', function() {
+    var local = new BMapGL.LocalSearch(map, {
+        renderOptions: {map: map, panel: "search-result"}
+    });
+    local.search(document.getElementById('search-input').value);
+});
+
+// 城市切换
+document.querySelectorAll('.city-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var city = this.getAttribute('data-city');
+        map.centerAndZoom(city, 12);
+    });
+});
+
+// 交通流量图层切换
+document.getElementById('traffic-layer').addEventListener('change', function() {
+    if (this.checked) {
+        map.addTileLayer(trafficLayer);
+    } else {
+        map.removeTileLayer(trafficLayer);
+    }
+});
+
+// 地铁图层切换
+var subwayLayer = null;
+document.getElementById('subway-layer').addEventListener('change', function() {
+    if (this.checked) {
+        if (!subwayLayer) {
+            subwayLayer = new BMapGL.SubwayLayer();
+        }
+        map.addTileLayer(subwayLayer);
+    } else if (subwayLayer) {
+        map.removeTileLayer(subwayLayer);
+    }
+});
+
+// 侧边栏切换
+document.getElementById('toggle-map-sidebar').addEventListener('click', function() {
+    var sidebar = document.getElementById('map-sidebar');
+    var button = document.getElementById('toggle-map-sidebar');
+    
+    sidebar.classList.toggle('collapsed');
+    button.classList.toggle('collapsed');
+    
+    if (sidebar.classList.contains('collapsed')) {
+        button.innerHTML = '<i class="fa fa-chevron-left"></i>';
+    } else {
+        button.innerHTML = '<i class="fa fa-chevron-right"></i>';
+    }
+});
+
+// 路线规划功能
+var routeMode = 'driving'; // 默认驾车模式
+var driving = new BMapGL.DrivingRoute(map, {renderOptions: {map: map, autoViewport: true, enablePolyline: true, polylineOptions: {strokeColor: '#0078FF', strokeWeight: 6, strokeOpacity: 0.7}}});
+var transit = new BMapGL.TransitRoute(map, {renderOptions: {map: map, autoViewport: true, enablePolyline: true, polylineOptions: {strokeColor: '#00A15F', strokeWeight: 6, strokeOpacity: 0.7}}});
+var walking = new BMapGL.WalkingRoute(map, {renderOptions: {map: map, autoViewport: true, enablePolyline: true, polylineOptions: {strokeColor: '#FF6600', strokeWeight: 6, strokeOpacity: 0.7}}});
+var riding = new BMapGL.RidingRoute(map, {renderOptions: {map: map, autoViewport: true, enablePolyline: true, polylineOptions: {strokeColor: '#9933FF', strokeWeight: 6, strokeOpacity: 0.7}}});
+
+// 保存的路线
+var savedRoutes = [];
+if (localStorage.getItem('savedRoutes')) {
+    savedRoutes = JSON.parse(localStorage.getItem('savedRoutes'));
+    updateSavedRoutesList();
+}
+
+// 选择起点/终点的模式
+var isSelectingStartPoint = false;
+var isSelectingEndPoint = false;
+
+// 路线数据
+var currentRoute = {
+    start: '',
+    end: '',
+    mode: 'driving',
+    distance: 0,
+    duration: 0
+};
+
+// 设置路线规划模式
+document.querySelectorAll('.route-mode-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        routeMode = this.getAttribute('data-mode');
+        currentRoute.mode = routeMode;
+        document.querySelectorAll('.route-mode-btn').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        this.classList.add('active');
+    });
+});
+
+// 在地图上选择起点
+document.getElementById('select-start-btn').addEventListener('click', function() {
+    if (isSelectingStartPoint) {
+        // 取消选择模式
+        isSelectingStartPoint = false;
+        this.classList.remove('active');
+        map.setDefaultCursor('pointer');
+    } else {
+        // 开始选择模式
+        isSelectingStartPoint = true;
+        isSelectingEndPoint = false;
+        document.getElementById('select-end-btn').classList.remove('active');
+        this.classList.add('active');
+        map.setDefaultCursor('crosshair');
+        alert('请在地图上点击选择起点位置');
+    }
+});
+
+// 在地图上选择终点
+document.getElementById('select-end-btn').addEventListener('click', function() {
+    if (isSelectingEndPoint) {
+        // 取消选择模式
+        isSelectingEndPoint = false;
+        this.classList.remove('active');
+        map.setDefaultCursor('pointer');
+    } else {
+        // 开始选择模式
+        isSelectingEndPoint = true;
+        isSelectingStartPoint = false;
+        document.getElementById('select-start-btn').classList.remove('active');
+        this.classList.add('active');
+        map.setDefaultCursor('crosshair');
+        alert('请在地图上点击选择终点位置');
+    }
+});
+
+// 使用当前位置作为起点
+document.getElementById('use-current-location-btn').addEventListener('click', function() {
+    if (navigator.geolocation) {
+        this.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+        this.disabled = true;
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                // 转换坐标系 (WGS84 到 BD09)
+                var convertor = new BMapGL.Convertor();
+                var point = new BMapGL.Point(position.coords.longitude, position.coords.latitude);
+                
+                convertor.translate([point], 1, 5, function(data) {
+                    if (data.status === 0) {
+                        var currentPt = data.points[0];
+                        // 地址解析
+                        var geocoder = new BMapGL.Geocoder();
+                        geocoder.getLocation(currentPt, function(result) {
+                            if (result) {
+                                document.getElementById('start-point').value = result.address;
+                                // 在地图上标记
+                                var marker = new BMapGL.Marker(currentPt, {
+                                    title: '我的位置'
+                                });
+                                map.addOverlay(marker);
+                                map.setCenter(currentPt);
+                            }
+                        });
+                    }
+                    document.getElementById('use-current-location-btn').innerHTML = '<i class="fa fa-location-arrow"></i>';
+                    document.getElementById('use-current-location-btn').disabled = false;
+                });
+            },
+            function(error) {
+                var errorMsg = '';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = "用户拒绝了位置请求";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMsg = "位置信息不可用";
+                        break;
+                    case error.TIMEOUT:
+                        errorMsg = "请求超时";
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        errorMsg = "未知错误";
+                        break;
+                }
+                alert('获取位置失败: ' + errorMsg);
+                document.getElementById('use-current-location-btn').innerHTML = '<i class="fa fa-location-arrow"></i>';
+                document.getElementById('use-current-location-btn').disabled = false;
+            }
+        );
+    } else {
+        alert('您的浏览器不支持地理位置功能');
+    }
+});
+
+// 清除路线
+document.getElementById('clear-route-btn').addEventListener('click', function() {
+    // 清除地图覆盖物
+    map.clearOverlays();
+    // 清空路线结果
+    document.getElementById('route-result').classList.add('d-none');
+    document.getElementById('route-result').innerHTML = '';
+    // 隐藏路线图例
+    document.getElementById('route-legend').classList.remove('active');
+});
+
+// 保存当前路线
+document.getElementById('save-route-btn').addEventListener('click', function() {
+    if (!currentRoute.start || !currentRoute.end) {
+        alert('请先规划一条路线');
+        return;
+    }
+    
+    var routeName = prompt('请输入路线名称', currentRoute.start + ' 到 ' + currentRoute.end);
+    if (!routeName) return;
+    
+    var newRoute = {
+        id: Date.now(),
+        name: routeName,
+        start: currentRoute.start,
+        end: currentRoute.end,
+        mode: currentRoute.mode,
+        distance: currentRoute.distance,
+        duration: currentRoute.duration
+    };
+    
+    savedRoutes.push(newRoute);
+    localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
+    updateSavedRoutesList();
+    
+    alert('路线已保存');
+});
+
+// 更新已保存路线列表
+function updateSavedRoutesList() {
+    var list = document.getElementById('saved-routes-list');
+    if (savedRoutes.length === 0) {
+        list.innerHTML = '<div class="text-muted small">暂无保存的路线</div>';
+        return;
+    }
+    
+    list.innerHTML = '';
+    savedRoutes.forEach(function(route) {
+        var item = document.createElement('div');
+        item.className = 'favorite-location';
+        
+        var infoDiv = document.createElement('div');
+        infoDiv.style.flex = '1';
+        
+        var nameSpan = document.createElement('div');
+        nameSpan.textContent = route.name;
+        nameSpan.className = 'fw-bold';
+        
+        var detailSpan = document.createElement('div');
+        detailSpan.textContent = getRouteModeText(route.mode) + ' · ' + 
+                                 (route.distance/1000).toFixed(1) + 'km · ' + 
+                                 Math.round(route.duration/60) + '分钟';
+        detailSpan.className = 'small text-muted';
+        
+        infoDiv.appendChild(nameSpan);
+        infoDiv.appendChild(detailSpan);
+        
+        infoDiv.addEventListener('click', function() {
+            document.getElementById('start-point').value = route.start;
+            document.getElementById('end-point').value = route.end;
+            
+            // 选择对应的交通方式
+            document.querySelectorAll('.route-mode-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-mode') === route.mode) {
+                    btn.classList.add('active');
+                    routeMode = route.mode;
+                }
+            });
+            
+            // 自动规划路线
+            document.getElementById('route-search-btn').click();
+        });
+        
+        var deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-sm btn-outline-danger';
+        deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (confirm('确定要删除这条路线吗？')) {
+                savedRoutes = savedRoutes.filter(function(r) { return r.id !== route.id; });
+                localStorage.setItem('savedRoutes', JSON.stringify(savedRoutes));
+                updateSavedRoutesList();
+            }
+        });
+        
+        item.appendChild(infoDiv);
+        item.appendChild(deleteBtn);
+        list.appendChild(item);
+    });
+}
+
+// 获取交通方式文本
+function getRouteModeText(mode) {
+    switch(mode) {
+        case 'driving': return '驾车';
+        case 'transit': return '公交';
+        case 'walking': return '步行';
+        case 'riding': return '骑行';
+        default: return '驾车';
+    }
+}
+
+// 路线规划搜索
+document.getElementById('route-search-btn').addEventListener('click', function() {
+    var start = document.getElementById('start-point').value;
+    var end = document.getElementById('end-point').value;
+    
+    if (!start || !end) {
+        alert('请输入起点和终点');
+        return;
+    }
+    
+    // 保存当前起终点
+    currentRoute.start = start;
+    currentRoute.end = end;
+    
+    // 清除之前的结果
+    map.clearOverlays();
+    
+    // 显示路线图例
+    document.getElementById('route-legend').classList.add('active');
+    
+    // 根据选择的模式进行路线规划
+    if (routeMode === 'driving') {
+        driving.search(start, end);
+    } else if (routeMode === 'transit') {
+        transit.search(start, end);
+    } else if (routeMode === 'walking') {
+        walking.search(start, end);
+    } else if (routeMode === 'riding') {
+        riding.search(start, end);
+    }
+    
+    // 显示路线结果区域
+    document.getElementById('route-result').classList.remove('d-none');
+    document.getElementById('route-result').innerHTML = '<div class="text-center"><i class="fa fa-spinner fa-spin"></i> 正在规划路线...</div>';
+});
+
+// 路线规划完成后的回调
+var routeCallback = function(results) {
+    if (results.getStatus() === 0) {
+        var plan = results.getPlan(0);
+        var duration = plan.getDuration();
+        var distance = plan.getDistance();
+        
+        // 保存到当前路线
+        currentRoute.distance = distance;
+        currentRoute.duration = duration;
+        
+        // 添加起点和终点标记
+        if (plan.getStart() && plan.getEnd()) {
+            // 创建起点标记
+            var startMarker = new BMapGL.Marker(plan.getStart().point, {
+                icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                    imageSize: new BMapGL.Size(600, 600),
+                    anchor: new BMapGL.Size(19, 25),
+                    imageOffset: new BMapGL.Size(0, 0)
+                })
+            });
+            map.addOverlay(startMarker);
+            
+            // 创建终点标记
+            var endMarker = new BMapGL.Marker(plan.getEnd().point, {
+                icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                    imageSize: new BMapGL.Size(600, 600),
+                    anchor: new BMapGL.Size(19, 25),
+                    imageOffset: new BMapGL.Size(0, 300)
+                })
+            });
+            map.addOverlay(endMarker);
+            
+            // 添加起点信息窗口
+            var startInfo = new BMapGL.InfoWindow('起点: ' + plan.getStart().title, {
+                width: 220,
+                height: 60,
+                title: "起点信息"
+            });
+            startMarker.addEventListener('click', function() {
+                this.openInfoWindow(startInfo);
+            });
+            
+            // 添加终点信息窗口
+            var endInfo = new BMapGL.InfoWindow('终点: ' + plan.getEnd().title, {
+                width: 220,
+                height: 60,
+                title: "终点信息"
+            });
+            endMarker.addEventListener('click', function() {
+                this.openInfoWindow(endInfo);
+            });
+        }
+        
+        var html = '<div class="mb-2">';
+        html += '<div><strong>总距离:</strong> ' + (distance/1000).toFixed(1) + ' 公里</div>';
+        html += '<div><strong>预计用时:</strong> ' + Math.round(duration/60) + ' 分钟</div>';
+        html += '</div>';
+        
+        // 添加路线详细步骤
+        if (routeMode === 'driving' || routeMode === 'walking' || routeMode === 'riding') {
+            var routes = plan.getRoute();
+            if (routes && routes.length > 0) {
+                html += '<div class="mt-2 border-top pt-2"><strong>路线详情:</strong></div>';
+                html += '<div class="small route-steps">';
+                routes.forEach(function(step, index) {
+                    var instructions = step.getDescription().replace(/\s/g, '');
+                    html += '<div class="route-step">' + (index + 1) + '. ' + instructions + '</div>';
+                });
+                html += '</div>';
+            }
+        } else if (routeMode === 'transit') {
+            var lines = plan.getLine();
+            var steps = plan.getStep();
+            if (steps && steps.length > 0) {
+                html += '<div class="mt-2 border-top pt-2"><strong>路线详情:</strong></div>';
+                html += '<div class="small route-steps">';
+                steps.forEach(function(step, index) {
+                    if (step.getType() === 5) { // 换乘
+                        var lineInfo = lines[step.getLineIndex()];
+                        var lineName = lineInfo.title;
+                        html += '<div class="route-step"><i class="fa fa-bus text-primary"></i> ' + lineName + '</div>';
+                    }
+                    var instructions = step.getDescription().replace(/\s/g, '');
+                    html += '<div class="route-step">' + (index + 1) + '. ' + instructions + '</div>';
+                });
+                html += '</div>';
+            }
+        }
+        
+        document.getElementById('route-result').innerHTML = html;
+    } else {
+        document.getElementById('route-result').innerHTML = '<div class="text-danger">路线规划失败，请检查起终点是否正确</div>';
+    }
+};
+
+driving.setSearchCompleteCallback(routeCallback);
+transit.setSearchCompleteCallback(routeCallback);
+walking.setSearchCompleteCallback(routeCallback);
+riding.setSearchCompleteCallback(routeCallback);
+
+// 地图类型切换
+document.querySelectorAll('.map-type-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var mapType = this.getAttribute('data-type');
+        
+        if (mapType === 'normal') {
+            map.setMapType(BMAP_NORMAL_MAP);
+        } else if (mapType === 'earth') {
+            map.setMapType(BMAP_SATELLITE_MAP);
+        } else if (mapType === 'dark') {
+            map.setMapStyleV2({
+                styleJson: [
+                    {
+                        "featureType": "all",
+                        "elementType": "all",
+                        "stylers": {
+                            "lightness": -40,
+                            "saturation": -100
+                        }
+                    }
+                ]
+            });
+        }
+        
+        // 更新按钮样式
+        document.querySelectorAll('.map-type-btn').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        this.classList.add('active');
+    });
+});
+
+// 添加收藏
+document.getElementById('add-favorite-btn').addEventListener('click', function() {
+    var name = document.getElementById('favorite-name').value.trim();
+    if (!name) {
+        alert('请输入收藏名称');
+        return;
+    }
+    
+    var center = map.getCenter();
+    var zoom = map.getZoom();
+    
+    favorites.push({
+        id: Date.now(),
+        name: name,
+        lat: center.lat,
+        lng: center.lng,
+        zoom: zoom
+    });
+    
+    // 保存到本地存储
+    localStorage.setItem('mapFavorites', JSON.stringify(favorites));
+    
+    // 更新UI
+    document.getElementById('favorite-name').value = '';
+    updateFavoritesList();
+});
+
+// 更新收藏列表
+function updateFavoritesList() {
+    var list = document.getElementById('favorites-list');
+    list.innerHTML = '';
+    
+    if (favorites.length === 0) {
+        list.innerHTML = '<div class="text-muted">暂无收藏位置</div>';
+        return;
+    }
+    
+    favorites.forEach(function(favorite) {
+        var item = document.createElement('div');
+        item.className = 'favorite-location';
+        
+        var nameSpan = document.createElement('span');
+        nameSpan.textContent = favorite.name;
+        nameSpan.addEventListener('click', function() {
+            map.centerAndZoom(new BMapGL.Point(favorite.lng, favorite.lat), favorite.zoom);
+        });
+        
+        var deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-sm btn-outline-danger';
+        deleteBtn.innerHTML = '<i class="fa fa-trash"></i>';
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            favorites = favorites.filter(function(f) { return f.id !== favorite.id; });
+            localStorage.setItem('mapFavorites', JSON.stringify(favorites));
+            updateFavoritesList();
+        });
+        
+        item.appendChild(nameSpan);
+        item.appendChild(deleteBtn);
+        list.appendChild(item);
+    });
+}
+
+// 兴趣点图层控制
+document.getElementById('poi-layer').addEventListener('change', function() {
+    if (this.checked) {
+        map.setDisplayOptions({
+            poi: true
+        });
+    } else {
+        map.setDisplayOptions({
+            poi: false
+        });
+    }
+});
+
+// 3D建筑图层控制
+document.getElementById('building-layer').addEventListener('change', function() {
+    if (this.checked) {
+        map.setDisplayOptions({
+            building: true
+        });
+    } else {
+        map.setDisplayOptions({
+            building: false
+        });
+    }
+});
+
+// 标签页切换功能
+document.querySelectorAll('.map-nav-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        // 移除所有标签页的active类
+        document.querySelectorAll('.map-nav-tab').forEach(function(t) {
+            t.classList.remove('active');
+        });
+        
+        // 给当前点击的标签页添加active类
+        this.classList.add('active');
+        
+        // 隐藏所有内容区域
+        document.querySelectorAll('.map-tab-content').forEach(function(content) {
+            content.classList.remove('active');
+        });
+        
+        // 显示对应的内容区域
+        var tabName = this.getAttribute('data-tab');
+        document.getElementById(tabName + '-tab').classList.add('active');
+    });
+});
+
+// 面板折叠/展开功能
+document.querySelectorAll('.panel-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+        // 切换当前面板标题的折叠状态
+        this.classList.toggle('collapsed');
+        
+        // 切换对应内容区域的折叠状态
+        var body = this.nextElementSibling;
+        if (body.classList.contains('collapsed')) {
+            body.classList.remove('collapsed');
+        } else {
+            body.classList.add('collapsed');
+        }
+    });
+});
+
+// 地图初始化时，设置侧边栏和面板的默认状态
+document.addEventListener('DOMContentLoaded', function() {
+    // 读取全局侧边栏状态，保持与其他页面一致
+    const savedState = localStorage.getItem('sidebarCollapsed') === 'true';
+    
+    // 默认折叠地图侧边栏
+    var sidebar = document.getElementById('map-sidebar');
+    var button = document.getElementById('toggle-map-sidebar');
+    sidebar.classList.add('collapsed');
+    button.classList.add('collapsed');
+    button.innerHTML = '<i class="fa fa-chevron-right"></i>';
+    
+    // 默认只展开第一个面板，其他折叠
+    document.querySelectorAll('.panel-header').forEach(function(header, index) {
+        if (index > 0) {
+            header.classList.add('collapsed');
+            header.nextElementSibling.classList.add('collapsed');
+        }
+    });
+    
+    // 添加地图相关的键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        // ESC键折叠侧边栏
+        if (e.key === 'Escape' && !sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+            button.classList.add('collapsed');
+            button.innerHTML = '<i class="fa fa-chevron-right"></i>';
+        }
+        
+        // Ctrl+M 切换侧边栏
+        if (e.ctrlKey && e.key === 'm') {
+            e.preventDefault();
+            button.click();
+        }
+    });
+});
+
+// 添加定位相关变量和函数
+var myLocationMarker = null;
+var isLocating = false;
+
+// 显示我的位置按钮点击事件
+document.getElementById('my-location-btn').addEventListener('click', function() {
+    if (isLocating) return; // 防止重复点击
+    
+    var btn = this;
+    isLocating = true;
+    btn.classList.add('locating');
+    
+    // 在按钮点击时显示加载状态的提示
+    var statusToast = document.createElement('div');
+    statusToast.className = 'position-fixed bottom-0 end-0 p-3';
+    statusToast.style.zIndex = '9999';
+    statusToast.innerHTML = `
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <i class="fa fa-location-arrow me-2 text-primary"></i>
+                <strong class="me-auto">定位服务</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                <div class="d-flex align-items-center">
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                    <span>正在获取您的位置...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(statusToast);
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                // 转换坐标系 (WGS84 到 BD09)
+                var convertor = new BMapGL.Convertor();
+                var point = new BMapGL.Point(position.coords.longitude, position.coords.latitude);
+                
+                convertor.translate([point], 1, 5, function(data) {
+                    if (data.status === 0) {
+                        var currentPt = data.points[0];
+                        
+                        // 清除之前的位置标记（如果有）
+                        if (myLocationMarker) {
+                            map.removeOverlay(myLocationMarker);
+                        }
+                        
+                        // 创建更明显的位置标记
+                        myLocationMarker = new BMapGL.Marker(currentPt, {
+                            icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                                imageSize: new BMapGL.Size(600, 600),
+                                anchor: new BMapGL.Size(19, 25),
+                                imageOffset: new BMapGL.Size(0, 0)
+                            })
+                        });
+                        
+                        // 添加精确度圈
+                        var accuracy = position.coords.accuracy;
+                        var accuracyCircle = new BMapGL.Circle(currentPt, accuracy, {
+                            strokeColor: "#3C90F7",
+                            strokeWeight: 1,
+                            strokeOpacity: 0.3,
+                            fillColor: "#3C90F7",
+                            fillOpacity: 0.1
+                        });
+                        
+                        // 添加定位成功的动画效果
+                        var locationSuccessAnimation = new BMapGL.Circle(currentPt, 20, {
+                            strokeColor: "#3C90F7",
+                            strokeWeight: 2,
+                            strokeOpacity: 0.8,
+                            fillColor: "#3C90F7",
+                            fillOpacity: 0.3
+                        });
+                        
+                        // 添加到地图
+                        map.addOverlay(myLocationMarker);
+                        map.addOverlay(accuracyCircle);
+                        map.addOverlay(locationSuccessAnimation);
+                        
+                        // 定位成功的动画效果
+                        var radius = 20;
+                        var timer = setInterval(function() {
+                            radius += 10;
+                            locationSuccessAnimation.setRadius(radius);
+                            locationSuccessAnimation.setStrokeOpacity(0.8 - radius/100);
+                            locationSuccessAnimation.setFillOpacity(0.3 - radius/100);
+                            
+                            if (radius > 80) {
+                                clearInterval(timer);
+                                map.removeOverlay(locationSuccessAnimation);
+                            }
+                        }, 50);
+                        
+                        // 定位到位置
+                        map.centerAndZoom(currentPt, 16);
+                        
+                        // 添加点击信息窗口
+                        var geocoder = new BMapGL.Geocoder();
+                        geocoder.getLocation(currentPt, function(result) {
+                            var address = result ? result.address : "未知位置";
+                            
+                            // 保存当前位置到localStorage以便后续使用
+                            var locationData = {
+                                lat: currentPt.lat,
+                                lng: currentPt.lng,
+                                address: address,
+                                timestamp: new Date().getTime()
+                            };
+                            localStorage.setItem('lastLocation', JSON.stringify(locationData));
+                            
+                            // 更新提示消息
+                            statusToast.querySelector('.toast-body').innerHTML = `
+                                <div class="text-success">
+                                    <i class="fa fa-check-circle me-2"></i>定位成功: ${address}
+                                </div>
+                            `;
+                            
+                            // 3秒后自动关闭提示
+                            setTimeout(function() {
+                                document.body.removeChild(statusToast);
+                            }, 3000);
+                            
+                            var infoWindow = new BMapGL.InfoWindow(
+                                `<div>
+                                    <div class="mb-2">您当前的位置：</div>
+                                    <div class="fw-bold">${address}</div>
+                                    <div class="small text-muted mt-1">精确度：约 ${Math.round(accuracy)} 米</div>
+                                </div>`, 
+                                {
+                                    width: 250,
+                                    height: 80,
+                                    title: "我的位置"
+                                }
+                            );
+                            
+                            myLocationMarker.addEventListener('click', function() {
+                                this.openInfoWindow(infoWindow);
+                            });
+                            
+                            // 自动打开信息窗口
+                            setTimeout(function() {
+                                myLocationMarker.openInfoWindow(infoWindow);
+                            }, 400);
+                        });
+                    } else {
+                        // 更新提示消息为错误状态
+                        statusToast.querySelector('.toast-body').innerHTML = `
+                            <div class="text-danger">
+                                <i class="fa fa-exclamation-circle me-2"></i>无法转换坐标，定位失败
+                            </div>
+                        `;
+                        // 3秒后自动关闭提示
+                        setTimeout(function() {
+                            document.body.removeChild(statusToast);
+                        }, 3000);
+                    }
+                    
+                    // 重置按钮状态
+                    isLocating = false;
+                    btn.classList.remove('locating');
+                });
+            },
+            function(error) {
+                var errorMsg = '';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = "浏览器阻止了位置访问请求。请检查浏览器设置，允许网站获取位置信息。";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMsg = "位置信息不可用，请检查您的网络连接或GPS是否开启。";
+                        break;
+                    case error.TIMEOUT:
+                        errorMsg = "获取位置信息超时，请重试。";
+                        break;
+                    case error.UNKNOWN_ERROR:
+                        errorMsg = "出现未知错误，请重试。";
+                        break;
+                }
+                
+                // 更新提示消息为错误状态
+                statusToast.querySelector('.toast-body').innerHTML = `
+                    <div class="text-danger">
+                        <i class="fa fa-exclamation-circle me-2"></i>获取位置失败: ${errorMsg}
+                    </div>
+                `;
+                // 5秒后自动关闭提示
+                setTimeout(function() {
+                    document.body.removeChild(statusToast);
+                }, 5000);
+                
+                // 重置按钮状态
+                isLocating = false;
+                btn.classList.remove('locating');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        // 更新提示消息为错误状态
+        statusToast.querySelector('.toast-body').innerHTML = `
+            <div class="text-danger">
+                <i class="fa fa-exclamation-circle me-2"></i>您的浏览器不支持地理位置功能
+            </div>
+        `;
+        // 3秒后自动关闭提示
+        setTimeout(function() {
+            document.body.removeChild(statusToast);
+        }, 3000);
+        
+        isLocating = false;
+        btn.classList.remove('locating');
+    }
+});
+
+// 自定义路线功能
+var customRouteMode = 'none'; // none, start, drawing, end
+var customRoutePoints = []; // 存储路线点
+var customRouteOverlays = []; // 存储路线覆盖物
+var customRoutePoly = null; // 路线折线
+var customRouteStartMarker = null; // 起点标记
+var customRouteEndMarker = null; // 终点标记
+var isCustomRouteDrawing = false; // 是否正在绘制
+var savedCustomRoutes = []; // 保存的自定义路线
+
+// 加载保存的自定义路线
+if (localStorage.getItem('customRoutes')) {
+    savedCustomRoutes = JSON.parse(localStorage.getItem('customRoutes'));
+    // 在地图上显示保存的自定义路线
+    savedCustomRoutes.forEach(function(route) {
+        displaySavedCustomRoute(route);
+    });
+    // 更新自定义路线列表
+    updateCustomRoutesList();
+}
+
+// 设置自定义路线起点
+document.getElementById('custom-route-start-btn').addEventListener('click', function() {
+    if (customRouteMode === 'start') {
+        // 取消设置起点模式
+        customRouteMode = 'none';
+        this.classList.remove('active');
+        map.setDefaultCursor('pointer');
+    } else {
+        // 进入设置起点模式
+        customRouteMode = 'start';
+        document.getElementById('custom-route-drawing-btn').classList.remove('active');
+        document.getElementById('custom-route-end-btn').classList.remove('active');
+        this.classList.add('active');
+        map.setDefaultCursor('crosshair');
+        // 如果已有起点，则移除
+        if (customRouteStartMarker) {
+            map.removeOverlay(customRouteStartMarker);
+            customRouteStartMarker = null;
+        }
+        // 清除之前绘制的路线
+        clearCustomRoute();
+    }
+});
+
+// 绘制自定义路线
+document.getElementById('custom-route-drawing-btn').addEventListener('click', function() {
+    if (customRouteMode === 'drawing') {
+        // 取消绘制模式
+        customRouteMode = 'none';
+        isCustomRouteDrawing = false;
+        this.classList.remove('active');
+        map.setDefaultCursor('pointer');
+    } else {
+        // 必须先设置起点
+        if (!customRouteStartMarker) {
+            alert('请先设置起点');
+            return;
+        }
+        // 进入绘制模式
+        customRouteMode = 'drawing';
+        isCustomRouteDrawing = true;
+        document.getElementById('custom-route-start-btn').classList.remove('active');
+        document.getElementById('custom-route-end-btn').classList.remove('active');
+        this.classList.add('active');
+        map.setDefaultCursor('crosshair');
+    }
+});
+
+// 设置自定义路线终点
+document.getElementById('custom-route-end-btn').addEventListener('click', function() {
+    if (customRouteMode === 'end') {
+        // 取消设置终点模式
+        customRouteMode = 'none';
+        this.classList.remove('active');
+        map.setDefaultCursor('pointer');
+    } else {
+        // 必须先绘制路线
+        if (customRoutePoints.length <= 1) {
+            alert('请先绘制路线');
+            return;
+        }
+        // 进入设置终点模式
+        customRouteMode = 'end';
+        document.getElementById('custom-route-start-btn').classList.remove('active');
+        document.getElementById('custom-route-drawing-btn').classList.remove('active');
+        this.classList.add('active');
+        map.setDefaultCursor('crosshair');
+        // 如果已有终点，则移除
+        if (customRouteEndMarker) {
+            map.removeOverlay(customRouteEndMarker);
+            customRouteEndMarker = null;
+        }
+    }
+});
+
+// 保存自定义路线
+document.getElementById('custom-route-save-btn').addEventListener('click', function() {
+    if (!customRouteStartMarker || !customRouteEndMarker || customRoutePoints.length < 2) {
+        alert('请先完成路线绘制（设置起点、绘制路线和设置终点）');
+        return;
+    }
+    
+    var routeName = prompt('请输入自定义路线名称', '自定义路线 ' + (savedCustomRoutes.length + 1));
+    if (!routeName) return;
+    
+    var totalDistance = calculateCustomRouteDistance();
+    
+    var newRoute = {
+        id: Date.now(),
+        name: routeName,
+        points: customRoutePoints.map(function(p) { return {lat: p.lat, lng: p.lng}; }),
+        color: document.getElementById('custom-route-color').value,
+        weight: parseInt(document.getElementById('custom-route-weight').value),
+        distance: totalDistance
+    };
+    
+    savedCustomRoutes.push(newRoute);
+    localStorage.setItem('customRoutes', JSON.stringify(savedCustomRoutes));
+    
+    // 更新路线列表
+    updateCustomRoutesList();
+    
+    // 显示成功消息
+    alert('自定义路线已保存');
+});
+
+// 清除自定义路线
+document.getElementById('custom-route-clear-btn').addEventListener('click', function() {
+    clearCustomRoute();
+    // 重置模式和按钮状态
+    customRouteMode = 'none';
+    document.getElementById('custom-route-start-btn').classList.remove('active');
+    document.getElementById('custom-route-drawing-btn').classList.remove('active');
+    document.getElementById('custom-route-end-btn').classList.remove('active');
+    map.setDefaultCursor('pointer');
+    // 隐藏路线信息
+    document.getElementById('custom-route-info').classList.add('d-none');
+});
+
+// 地图点击事件添加自定义路线处理
+map.addEventListener('click', function(e) {
+    // 处理自定义路线相关点击
+    if (customRouteMode === 'start') {
+        // 设置起点
+        if (customRouteStartMarker) {
+            map.removeOverlay(customRouteStartMarker);
+        }
+        var point = new BMapGL.Point(e.latlng.lng, e.latlng.lat);
+        customRouteStartMarker = new BMapGL.Marker(point, {
+            icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                imageSize: new BMapGL.Size(600, 600),
+                anchor: new BMapGL.Size(19, 25),
+                imageOffset: new BMapGL.Size(0, 0)
+            })
+        });
+        map.addOverlay(customRouteStartMarker);
+        
+        // 初始化路线点
+        customRoutePoints = [e.latlng];
+        
+        // 添加起点信息窗口
+        var infoWindow = new BMapGL.InfoWindow("自定义路线起点", {
+            width: 200,
+            height: 40,
+            title: "起点信息"
+        });
+        customRouteStartMarker.addEventListener('click', function() {
+            this.openInfoWindow(infoWindow);
+        });
+        customRouteStartMarker.openInfoWindow(infoWindow);
+        
+        // 重置模式
+        customRouteMode = 'none';
+        document.getElementById('custom-route-start-btn').classList.remove('active');
+        map.setDefaultCursor('pointer');
+        
+        return;
+    } else if (customRouteMode === 'drawing' && isCustomRouteDrawing) {
+        // 添加路线点
+        customRoutePoints.push(e.latlng);
+        
+        // 更新路线显示
+        updateCustomRouteLine();
+        
+        return;
+    } else if (customRouteMode === 'end') {
+        // 设置终点
+        if (customRouteEndMarker) {
+            map.removeOverlay(customRouteEndMarker);
+        }
+        var point = new BMapGL.Point(e.latlng.lng, e.latlng.lat);
+        customRouteEndMarker = new BMapGL.Marker(point, {
+            icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+                imageSize: new BMapGL.Size(600, 600),
+                anchor: new BMapGL.Size(19, 25),
+                imageOffset: new BMapGL.Size(0, 300)
+            })
+        });
+        map.addOverlay(customRouteEndMarker);
+        
+        // 添加最后一个路线点
+        customRoutePoints.push(e.latlng);
+        
+        // 更新路线显示
+        updateCustomRouteLine();
+        
+        // 添加终点信息窗口
+        var infoWindow = new BMapGL.InfoWindow("自定义路线终点", {
+            width: 200,
+            height: 40,
+            title: "终点信息"
+        });
+        customRouteEndMarker.addEventListener('click', function() {
+            this.openInfoWindow(infoWindow);
+        });
+        customRouteEndMarker.openInfoWindow(infoWindow);
+        
+        // 显示路线信息
+        updateCustomRouteInfo();
+        
+        // 重置模式
+        customRouteMode = 'none';
+        document.getElementById('custom-route-end-btn').classList.remove('active');
+        map.setDefaultCursor('pointer');
+        
+        return;
+    }
+    
+    // 原有的添加标记点逻辑
+    var marker = new BMapGL.Marker(new BMapGL.Point(e.latlng.lng, e.latlng.lat));
+    map.addOverlay(marker);
+    
+    var infoWindow = new BMapGL.InfoWindow("标记位置: " + e.latlng.lat.toFixed(4) + ", " + e.latlng.lng.toFixed(4), {
+        width: 220,
+        height: 60,
+        title: "位置信息"
+    });
+    
+    marker.addEventListener('click', function() {
+        this.openInfoWindow(infoWindow);
+    });
+    
+    // 添加到标记点列表
+    markers.push({
+        id: markers.length + 1,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        marker: marker
+    });
+    
+    // 更新标记点列表UI
+    updateMarkerList();
+});
+
+// 更新自定义路线显示
+function updateCustomRouteLine() {
+    // 移除旧的路线
+    if (customRoutePoly) {
+        map.removeOverlay(customRoutePoly);
+    }
+    
+    // 清除旧的路径点标记
+    customRoutePoints.forEach(function(point, index) {
+        if (point.marker) {
+            map.removeOverlay(point.marker);
+            delete customRoutePoints[index].marker;
+        }
+    });
+    
+    // 至少需要两个点才能绘制线
+    if (customRoutePoints.length < 2) return;
+    
+    // 创建路线点数组
+    var points = customRoutePoints.map(function(p) {
+        return new BMapGL.Point(p.lng, p.lat);
+    });
+    
+    // 创建折线
+    customRoutePoly = new BMapGL.Polyline(points, {
+        strokeColor: document.getElementById('custom-route-color').value,
+        strokeWeight: parseInt(document.getElementById('custom-route-weight').value),
+        strokeOpacity: 0.8
+    });
+    
+    // 添加到地图
+    map.addOverlay(customRoutePoly);
+    
+    // 为路径上的每个点添加可见标记（除了起点和终点）
+    if (customRoutePoints.length > 2) {
+        for (var i = 1; i < customRoutePoints.length - 1; i++) {
+            var p = customRoutePoints[i];
+            var markerPoint = new BMapGL.Point(p.lng, p.lat);
+            
+            // 创建自定义覆盖物作为路径点
+            var waypointMarker = new BMapGL.Marker(markerPoint, {
+                icon: new BMapGL.Icon('//api.map.baidu.com/images/blank.gif', new BMapGL.Size(8, 8)),
+                enableMassClear: false
+            });
+            
+            // 保存marker引用
+            customRoutePoints[i].marker = waypointMarker;
+            
+            // 添加到地图
+            map.addOverlay(waypointMarker);
+            
+            // 添加路径点信息窗口
+            (function(index) {
+                var infoWindow = new BMapGL.InfoWindow(`
+                    <div>
+                        <div>路径点 #${index}</div>
+                        <div class="small">坐标: ${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div>
+                        <button class="btn btn-sm btn-danger delete-waypoint-btn" data-index="${index}">删除此点</button>
+                    </div>
+                `, {
+                    width: 200,
+                    height: 80,
+                    title: "路径点信息"
+                });
+                
+                waypointMarker.addEventListener('click', function() {
+                    this.openInfoWindow(infoWindow);
+                    
+                    // 添加删除路径点按钮事件
+                    setTimeout(function() {
+                        var deleteBtn = document.querySelector('.delete-waypoint-btn[data-index="'+index+'"]');
+                        if (deleteBtn) {
+                            deleteBtn.addEventListener('click', function() {
+                                // 移除路径点
+                                if (customRoutePoints[index].marker) {
+                                    map.removeOverlay(customRoutePoints[index].marker);
+                                }
+                                // 从数组中移除
+                                customRoutePoints.splice(index, 1);
+                                // 更新路线显示
+                                updateCustomRouteLine();
+                                // 关闭信息窗口
+                                map.closeInfoWindow();
+                            });
+                        }
+                    }, 100);
+                });
+            })(i);
+        }
+    }
+}
+
+// 计算自定义路线总距离
+function calculateCustomRouteDistance() {
+    var totalDistance = 0;
+    for (var i = 0; i < customRoutePoints.length - 1; i++) {
+        var p1 = new BMapGL.Point(customRoutePoints[i].lng, customRoutePoints[i].lat);
+        var p2 = new BMapGL.Point(customRoutePoints[i+1].lng, customRoutePoints[i+1].lat);
+        totalDistance += map.getDistance(p1, p2);
+    }
+    return totalDistance;
+}
+
+// 更新自定义路线信息
+function updateCustomRouteInfo() {
+    var totalDistance = calculateCustomRouteDistance();
+    
+    var html = `
+        <div class="alert alert-info p-2 mb-0">
+            <div class="fw-bold">路线信息:</div>
+            <div>总距离: ${(totalDistance/1000).toFixed(2)} 公里</div>
+            <div>路线点数: ${customRoutePoints.length} 个</div>
+        </div>
+    `;
+    
+    document.getElementById('custom-route-info').innerHTML = html;
+    document.getElementById('custom-route-info').classList.remove('d-none');
+}
+
+// 清除自定义路线
+function clearCustomRoute() {
+    // 清除路线点
+    customRoutePoints = [];
+    
+    // 移除起点和终点标记
+    if (customRouteStartMarker) {
+        map.removeOverlay(customRouteStartMarker);
+        customRouteStartMarker = null;
+    }
+    if (customRouteEndMarker) {
+        map.removeOverlay(customRouteEndMarker);
+        customRouteEndMarker = null;
+    }
+    
+    // 移除路线
+    if (customRoutePoly) {
+        map.removeOverlay(customRoutePoly);
+        customRoutePoly = null;
+    }
+    
+    // 隐藏路线信息
+    document.getElementById('custom-route-info').classList.add('d-none');
+    
+    // 重置绘制状态
+    isCustomRouteDrawing = false;
+}
+
+// 显示保存的自定义路线
+function displaySavedCustomRoute(route) {
+    // 创建路线点数组
+    var points = route.points.map(function(p) {
+        return new BMapGL.Point(p.lng, p.lat);
+    });
+    
+    // 创建折线
+    var poly = new BMapGL.Polyline(points, {
+        strokeColor: route.color || '#2196F3',
+        strokeWeight: route.weight || 5,
+        strokeOpacity: 0.8
+    });
+    
+    // 添加到地图
+    map.addOverlay(poly);
+    
+    // 创建起点标记
+    var startPoint = new BMapGL.Point(route.points[0].lng, route.points[0].lat);
+    var startMarker = new BMapGL.Marker(startPoint, {
+        icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+            imageSize: new BMapGL.Size(600, 600),
+            anchor: new BMapGL.Size(19, 25),
+            imageOffset: new BMapGL.Size(0, 0)
+        })
+    });
+    
+    // 创建终点标记
+    var endPoint = new BMapGL.Point(route.points[route.points.length-1].lng, route.points[route.points.length-1].lat);
+    var endMarker = new BMapGL.Marker(endPoint, {
+        icon: new BMapGL.Icon('//api.map.baidu.com/images/marker_red_sprite.png', new BMapGL.Size(39, 25), {
+            imageSize: new BMapGL.Size(600, 600),
+            anchor: new BMapGL.Size(19, 25),
+            imageOffset: new BMapGL.Size(0, 300)
+        })
+    });
+    
+    // 添加到地图
+    map.addOverlay(startMarker);
+    map.addOverlay(endMarker);
+    
+    // 添加路径点标记（如果点数量大于10，只显示部分关键点）
+    var showWaypoints = route.points.length <= 10;
+    var waypointInterval = Math.max(1, Math.floor(route.points.length / 8));
+    
+    if (route.points.length > 2) {
+        for (var i = 1; i < route.points.length - 1; i++) {
+            // 如果点太多，只显示部分关键点
+            if (!showWaypoints && i % waypointInterval !== 0) {
+                continue;
+            }
+            
+            var p = route.points[i];
+            var waypointPoint = new BMapGL.Point(p.lng, p.lat);
+            
+            // 创建路径点标记
+            var waypointMarker = new BMapGL.Marker(waypointPoint, {
+                icon: new BMapGL.Icon('//api.map.baidu.com/images/blank.gif', new BMapGL.Size(8, 8)),
+                enableMassClear: false
+            });
+            
+            // 添加到地图
+            map.addOverlay(waypointMarker);
+        }
+    }
+    
+    // 添加信息窗口
+    var infoWindow = new BMapGL.InfoWindow(`
+        <div>
+            <div class="fw-bold">${route.name}</div>
+            <div class="small">距离: ${(route.distance/1000).toFixed(2)} 公里</div>
+            <div class="small">路线点数: ${route.points.length} 个</div>
+        </div>
+    `, {
+        width: 250,
+        height: 80,
+        title: "自定义路线信息"
+    });
+    
+    // 给折线添加点击事件
+    poly.addEventListener('click', function() {
+        var center = points[Math.floor(points.length/2)];
+        map.openInfoWindow(infoWindow, center);
+    });
+    
+    // 给起点和终点添加信息窗口
+    var startInfo = new BMapGL.InfoWindow(`
+        <div>自定义路线: ${route.name} 的起点</div>
+    `, {
+        width: 220,
+        height: 40,
+        title: "起点信息"
+    });
+    
+    startMarker.addEventListener('click', function() {
+        this.openInfoWindow(startInfo);
+    });
+    
+    var endInfo = new BMapGL.InfoWindow(`
+        <div>自定义路线: ${route.name} 的终点</div>
+    `, {
+        width: 220,
+        height: 40,
+        title: "终点信息"
+    });
+    
+    endMarker.addEventListener('click', function() {
+        this.openInfoWindow(endInfo);
+    });
+}
+
+// 颜色下拉菜单变化事件
+document.getElementById('custom-route-color').addEventListener('change', function() {
+    if (customRoutePoly) {
+        customRoutePoly.setStrokeColor(this.value);
+    }
+});
+
+// 线宽下拉菜单变化事件
+document.getElementById('custom-route-weight').addEventListener('change', function() {
+    if (customRoutePoly) {
+        customRoutePoly.setStrokeWeight(parseInt(this.value));
+    }
+});
+
+// 更新自定义路线列表
+function updateCustomRoutesList() {
+    var list = document.getElementById('custom-routes-list');
+    if (savedCustomRoutes.length === 0) {
+        list.innerHTML = '<div class="text-muted small">暂无保存的自定义路线</div>';
+        return;
+    }
+    
+    list.innerHTML = '';
+    savedCustomRoutes.forEach(function(route) {
+        var item = document.createElement('div');
+        item.className = 'saved-route';
+        
+        var content = `
+            <div class="saved-route-info">
+                <div class="saved-route-name">${route.name}</div>
+                <div class="saved-route-detail">距离: ${(route.distance/1000).toFixed(2)} 公里 · 点数: ${route.points.length}</div>
+                <div class="mt-1 d-flex justify-content-between">
+                    <button class="btn btn-sm btn-outline-primary view-custom-route-btn" data-id="${route.id}">查看</button>
+                    <button class="btn btn-sm btn-outline-danger delete-custom-route-btn" data-id="${route.id}">删除</button>
+                </div>
+            </div>
+        `;
+        
+        item.innerHTML = content;
+        list.appendChild(item);
+        
+        // 添加查看按钮事件
+        item.querySelector('.view-custom-route-btn').addEventListener('click', function() {
+            var routeId = parseInt(this.getAttribute('data-id'));
+            var route = savedCustomRoutes.find(function(r) { return r.id === routeId; });
+            if (route) {
+                // 定位到路线中心点
+                var centerIndex = Math.floor(route.points.length / 2);
+                var centerPoint = new BMapGL.Point(route.points[centerIndex].lng, route.points[centerIndex].lat);
+                map.centerAndZoom(centerPoint, 15);
+            }
+        });
+        
+        // 添加删除按钮事件
+        item.querySelector('.delete-custom-route-btn').addEventListener('click', function() {
+            var routeId = parseInt(this.getAttribute('data-id'));
+            if (confirm('确定要删除此路线吗？')) {
+                // 从数组中移除
+                savedCustomRoutes = savedCustomRoutes.filter(function(r) { return r.id !== routeId; });
+                // 保存到本地存储
+                localStorage.setItem('customRoutes', JSON.stringify(savedCustomRoutes));
+                // 更新UI
+                updateCustomRoutesList();
+                // 刷新地图上的路线显示
+                map.clearOverlays();
+                savedCustomRoutes.forEach(function(route) {
+                    displaySavedCustomRoute(route);
+                });
+            }
+        });
+    });
+}
+</script>
+{% endblock %}

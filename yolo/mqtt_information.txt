@@ -1,0 +1,4 @@
+名称 Wisdom
+服务器地址 mqtt://8.138.192.81
+port:1883
+Client ID:mqttx_61b71c4d

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="modern-cctv-icon">
+  <defs>
+    <!-- 渐变系统 -->
+    <linearGradient id="mainGradient" x1="32" y1="12" x2="32" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB" offset="0%"/>  <!-- 深蓝 -->
+      <stop stop-color="#3B82F6" offset="60%"/> <!-- 主蓝 -->
+      <stop stop-color="#60A5FA" offset="100%"/> <!-- 浅蓝 -->
+    </linearGradient>
+
+    <!-- 镜头高光 -->
+    <radialGradient id="lensHighlight" cx="32" cy="32" r="15" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" offset="0%" stop-opacity="0.2"/>
+      <stop stop-color="white" offset="100%" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- 动态波纹 -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 信号波纹 -->
+  <g class="signal-waves" filter="url(#glow)">
+    <circle cx="32" cy="32" r="24" fill="none" stroke="#93C5FD" stroke-width="1.5"
+            stroke-dasharray="3 2" opacity="0.4" stroke-linecap="round">
+      <animate attributeName="r" from="20" to="28" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" from="0.3" to="0" dur="3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- 摄像头主体 -->
+  <g class="camera-body">
+    <path d="M32 16a16 16 0 0 1 16 16 16 16 0 0 1-16 16 16 16 0 0 1-16-16 16 16 0 0 1 16-16z"
+          fill="url(#mainGradient)"/>
+
+    <!-- 镜头结构 -->
+    <circle cx="32" cy="32" r="12" fill="#1E3A8A"/> <!-- 深色镜片 -->
+    <circle cx="32" cy="32" r="8" fill="#3B82F6"/>  <!-- 焦点区域 -->
+    <circle cx="36" cy="28" r="2" fill="white" opacity="0.8"/> <!-- 高光 -->
+
+    <!-- 玻璃反射 -->
+    <path d="M32 20a12 12 0 0 1 12 12 12 12 0 0 1-12 12 12 12 0 0 1-12-12 12 12 0 0 1 12-12z"
+          fill="url(#lensHighlight)"/>
+  </g>
+
+  <!-- 底座结构 -->
+  <path class="camera-base" d="M44 56H20a4 4 0 0 1-4-4v-4h32v4a4 4 0 0 1-4 4z" fill="#1E293B"/>
+
+  <style>
+    .modern-cctv-icon {
+      --main-color: #3B82F6;
+      --accent-color: #93C5FD;
+      --base-color: #1E293B;
+    }
+
+    /* 暗色模式适配 */
+    @media (prefers-color-scheme: dark) {
+      .modern-cctv-icon {
+        --main-color: #60A5FA;
+        --accent-color: #BFDBFE;
+        --base-color: #334155;
+      }
+    }
+
+    /* 动态效果 */
+    .signal-waves {
+      animation: rotate 12s linear infinite;
+      transform-origin: 32px 32px;
+    }
+
+    @keyframes rotate {
+      100% { transform: rotate(360deg); }
+    }
+
+    .camera-body { transition: transform 0.3s ease; }
+    .modern-cctv-icon:hover .camera-body { transform: scale(1.05); }
+  </style>
+</svg>

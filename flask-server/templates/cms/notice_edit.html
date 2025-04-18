@@ -1,0 +1,245 @@
+{% extends "common/cms_base.html" %}
+
+{% block title %}
+    {% if is_add %}
+        【慧眼通途】---添加公告
+    {% else %}
+        【慧眼通途】---编辑公告
+    {% endif %}
+{% endblock %}
+
+{% block css %}
+    <style>
+        .form-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .form-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        .form-control:focus {
+            border-color: #80bdff;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .btn-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0069d9;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .required-marker {
+            color: #dc3545;
+            margin-left: 5px;
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .radio-option input {
+            margin-right: 8px;
+        }
+        
+        .notice-content {
+            min-height: 200px;
+        }
+        
+        /* 添加日期时间选择器的样式 */
+        .datetime-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .datetime-input {
+            flex: 1;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="form-container">
+        <h1 class="form-title">
+            {% if is_add %}
+                添加公告
+            {% else %}
+                编辑公告
+            {% endif %}
+        </h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if notice %}
+                <input type="hidden" name="notice_id" value="{{ notice.id }}">
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="title" class="form-label">标题<span class="required-marker">*</span></label>
+                <input type="text" class="form-control" id="title" name="title" value="{{ form.title.data if form.title.data else '' }}" required>
+                {% if form.title.errors %}
+                    {% for error in form.title.errors %}
+                        <small class="form-text text-danger">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+                <small class="form-text">公告标题，建议不超过50个字符</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="content" class="form-label">内容<span class="required-marker">*</span></label>
+                <textarea class="form-control notice-content" id="content" name="content" rows="10" required>{{ form.content.data if form.content.data else '' }}</textarea>
+                {% if form.content.errors %}
+                    {% for error in form.content.errors %}
+                        <small class="form-text text-danger">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+                <small class="form-text">公告详细内容</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="publish_time" class="form-label">发布时间<span class="required-marker">*</span></label>
+                <input type="datetime-local" class="form-control" id="publish_time" name="publish_time" value="{{ form.publish_time.data.strftime('%Y-%m-%dT%H:%M') if form.publish_time.data else '' }}" required>
+                {% if form.publish_time.errors %}
+                    {% for error in form.publish_time.errors %}
+                        <small class="form-text text-danger">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+                <small class="form-text">公告发布时间，默认为当前时间</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="end_time" class="form-label">结束时间</label>
+                <input type="datetime-local" class="form-control" id="end_time" name="end_time" value="{{ form.end_time.data.strftime('%Y-%m-%dT%H:%M') if form.end_time.data else '' }}">
+                {% if form.end_time.errors %}
+                    {% for error in form.end_time.errors %}
+                        <small class="form-text text-danger">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+                <small class="form-text">公告结束展示时间（可选），若不设置则一直展示</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">重要性<span class="required-marker">*</span></label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="is_important" value="1" {% if form.is_important.data == 1 %}checked{% endif %}>
+                        重要
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="is_important" value="0" {% if form.is_important.data == 0 or not form.is_important.data %}checked{% endif %}>
+                        普通
+                    </label>
+                </div>
+                {% if form.is_important.errors %}
+                    {% for error in form.is_important.errors %}
+                        <small class="form-text text-danger">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+                <small class="form-text">重要公告会在前台显示时有特殊标记</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">状态<span class="required-marker">*</span></label>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio" name="status" value="1" {% if form.status.data == 1 or not form.status.data %}checked{% endif %}>
+                        启用
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="status" value="0" {% if form.status.data == 0 %}checked{% endif %}>
+                        禁用
+                    </label>
+                </div>
+                {% if form.status.errors %}
+                    {% for error in form.status.errors %}
+                        <small class="form-text text-danger">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+                <small class="form-text">禁用状态的公告不会在前台显示</small>
+            </div>
+            
+            <div class="btn-container">
+                <a href="{{ url_for('cms.notices_list') }}" class="btn btn-secondary">取消</a>
+                <button type="submit" class="btn btn-primary">保存</button>
+            </div>
+        </form>
+    </div>
+{% endblock %} 

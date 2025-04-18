@@ -1,0 +1,57 @@
+/* 完全禁用所有菜单项变换效果 */
+.sidebar-link,
+.sidebar-link:hover, 
+.sidebar-link:active,
+.sidebar-link.active,
+.sidebar-link.active.highlight, 
+.sidebar-link svg,
+.sidebar-link:hover svg,
+.sidebar-toggle:active,
+.logout-btn,
+.logout-btn:hover,
+.logout-btn:active,
+.logout-btn.solid-btn,
+.logout-btn.solid-btn:hover,
+.logout-btn.solid-btn:active,
+.header-avatar,
+.header-avatar:hover,
+.mobile-nav-trigger:active {
+    transform: none !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s !important;
+    animation: none !important;
+}
+
+/* 重写动画关键帧 */
+@keyframes highlight-pulse {
+    0%, 70%, 100% { transform: none !important; box-shadow: 0 0 0 0 rgba(76,175,80,0.4); }
+}
+
+@keyframes icon-breathe {
+    0%, 50%, 100% { transform: none !important; box-shadow: none !important; }
+}
+
+@keyframes icon-float {
+    0%, 50%, 100% { transform: none !important; }
+}
+
+/* 添加额外的样式来确保侧边栏链接点击没有缩放 */
+.sidebar {
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    -webkit-font-smoothing: subpixel-antialiased !important;
+}
+
+/* 防止所有内容的变换效果 */
+* {
+    backface-visibility: hidden !important;
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+/* 修正点击后的跳动问题 */
+body {
+    overflow-x: hidden !important;
+} 

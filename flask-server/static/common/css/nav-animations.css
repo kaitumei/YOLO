@@ -1,0 +1,502 @@
+/* 导航栏动画样式 */
+
+/* 侧边栏过渡动画增强 */
+.sidebar {
+    transition: width 0.45s cubic-bezier(0.3, 0, 0.2, 1), 
+                left 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                box-shadow 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                transform 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+    will-change: width, transform;
+    overflow-x: hidden;
+    overflow-y: hidden;
+}
+
+/* 侧边栏内容过渡 */
+.sidebar-content {
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* 导航链接过渡效果增强 */
+.sidebar-link {
+    transition: background-color 0.25s ease,
+                color 0.25s ease,
+                border-radius 0.25s ease,
+                padding 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                margin 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                transform 0.25s cubic-bezier(0.3, 0, 0.2, 1),
+                width 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    transform-origin: left center;
+}
+
+/* 侧边栏标题过渡增强 */
+.sidebar-title {
+    transition: opacity 0.28s ease, 
+                visibility 0.28s ease,
+                transform 0.3s cubic-bezier(0.3, 0, 0.2, 1),
+                max-width 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+    white-space: nowrap;
+    transform-origin: left center;
+}
+
+.sidebar.collapsed .sidebar-title {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(15px) scale(0.95);
+    max-width: 0;
+}
+
+/* 侧边栏图标过渡增强 */
+.sidebar-link svg {
+    transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                margin 0.42s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s ease;
+    transform-origin: center center;
+}
+
+/* 在折叠状态下的图标居中和缩放增强 */
+.sidebar.collapsed .sidebar-link svg {
+    transform: scale(1.1);
+    margin: 0 auto;
+}
+
+.sidebar.collapsed .sidebar-link:hover svg {
+    transform: scale(1.25); 
+}
+
+/* 链接文本过渡优化加强 */
+.sidebar-link span {
+    transition: opacity 0.25s ease,
+                visibility 0.25s ease,
+                transform 0.35s cubic-bezier(0.3, 0, 0.2, 1),
+                max-width 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                margin 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 160px;
+    transform-origin: left center;
+}
+
+/* 折叠状态下隐藏文本增强 */
+.sidebar.collapsed .sidebar-link span:not(.badge):not(.status-pill) {
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(15px) scale(0.95);
+    max-width: 0;
+    margin-left: 0;
+}
+
+/* 侧边栏头部过渡 */
+.sidebar-header {
+    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 用户面板过渡增强 */
+.user-panel {
+    transition: padding 0.45s cubic-bezier(0.3, 0, 0.2, 1), 
+                opacity 0.3s ease;
+}
+
+.user-row {
+    transition: justify-content 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.sidebar.collapsed .user-row {
+    justify-content: center;
+}
+
+.user-name {
+    transition: opacity 0.25s ease, 
+                visibility 0.25s ease,
+                max-width 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                transform 0.35s cubic-bezier(0.3, 0, 0.2, 1);
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 130px;
+    transform-origin: left center;
+}
+
+.sidebar.collapsed .user-name {
+    opacity: 0;
+    visibility: hidden;
+    max-width: 0;
+    transform: translateX(15px) scale(0.95);
+}
+
+/* 头像过渡 */
+.user-avatar {
+    transition: margin 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                width 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                justify-content 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+.sidebar.collapsed .user-avatar {
+    margin: 0 auto;
+    width: 100%;
+    justify-content: center;
+}
+
+/* 子菜单过渡优化 */
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.33, 1, 0.68, 1),
+                opacity 0.3s ease,
+                transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(-8px);
+    will-change: max-height, opacity, transform;
+}
+
+.submenu.active {
+    max-height: 500px; /* 足够大的值以容纳所有子菜单项 */
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 子菜单项过渡加强 */
+.sidebar-sublink,
+.submenu-item {
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.3s ease, 
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.submenu.active .sidebar-sublink,
+.submenu.active .submenu-item {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* 子菜单级联动画延迟优化 */
+.submenu.active .sidebar-sublink:nth-child(1),
+.submenu.active .submenu-item:nth-child(1) { transition-delay: 0.05s; }
+.submenu.active .sidebar-sublink:nth-child(2),
+.submenu.active .submenu-item:nth-child(2) { transition-delay: 0.1s; }
+.submenu.active .sidebar-sublink:nth-child(3),
+.submenu.active .submenu-item:nth-child(3) { transition-delay: 0.15s; }
+.submenu.active .sidebar-sublink:nth-child(4),
+.submenu.active .submenu-item:nth-child(4) { transition-delay: 0.2s; }
+.submenu.active .sidebar-sublink:nth-child(5),
+.submenu.active .submenu-item:nth-child(5) { transition-delay: 0.25s; }
+
+/* 子菜单展开/折叠指示器动画加强 */
+.has-submenu {
+    position: relative;
+}
+
+.has-submenu:after {
+    content: '';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-50%) rotate(45deg);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                opacity 0.2s ease;
+    opacity: 0.7;
+}
+
+.has-submenu.open:after {
+    transform: translateY(-50%) rotate(-135deg);
+    opacity: 1;
+}
+
+/* 涟漪效果 */
+.ripple {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: scale(0);
+    pointer-events: none;
+}
+
+.ripple.animate {
+    animation: ripple 0.6s linear;
+}
+
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* 导航项悬停效果 */
+.sidebar-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 活动导航项过渡 */
+.sidebar-link.active {
+    position: relative;
+    overflow: hidden;
+    transition: background-color 0.3s ease, 
+                border-left 0.3s ease,
+                padding-left 0.3s ease;
+}
+
+.sidebar-link.active:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background-color: var(--primary-600, #1976D2);
+    border-radius: 0 4px 4px 0;
+    transform: translateX(-100%);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.2s ease;
+}
+
+.sidebar-link.active:before {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* 折叠时的活动项指示器 */
+.sidebar.collapsed .sidebar-link.active:before {
+    width: 5px;
+}
+
+/* 移动设备导航抽屉动画 */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                    visibility 0.3s ease;
+        visibility: hidden;
+    }
+    
+    .sidebar.mobile-visible {
+        transform: translateX(0);
+        visibility: visible;
+    }
+    
+    /* 移动端菜单遮罩层 */
+    .mobile-nav-overlay {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    
+    .mobile-nav-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* 移动菜单触发器动画 */
+.mobile-nav-trigger {
+    transition: transform 0.3s ease;
+}
+
+.mobile-nav-trigger.active {
+    transform: rotate(90deg);
+}
+
+/* 导航菜单展开/折叠图标动画 */
+.submenu-toggle {
+    transition: transform 0.3s ease;
+}
+
+.submenu-toggle.active {
+    transform: rotate(180deg);
+}
+
+/* 工具提示动画 */
+[data-tooltip]:after {
+    transition: opacity 0.2s ease, 
+                visibility 0.2s ease, 
+                transform 0.2s ease;
+}
+
+/* 侧边栏图标动画增强 */
+.logo-icon {
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                margin 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+    transform-origin: center center;
+}
+
+.sidebar.collapsed .logo-icon {
+    margin: 0 auto;
+}
+
+/* 通知徽章动画 */
+.notify-badge,
+.status-pill,
+.badge,
+.count-badge {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                background-color 0.25s ease,
+                opacity 0.25s ease,
+                right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notify-badge.pulse {
+    animation: pulse 1s cubic-bezier(0.36, 0.11, 0.89, 0.32);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    20% {
+        transform: scale(1.4);
+    }
+    50% {
+        transform: scale(0.9);
+    }
+    80% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* 主题切换按钮动画 */
+.theme-toggle button {
+    position: relative;
+    overflow: hidden;
+    transition: background-color var(--transition-fast);
+}
+
+.sun-icon, .moon-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transition: opacity var(--transition-normal),
+                transform var(--transition-normal);
+}
+
+.sun-icon {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 1;
+}
+
+.moon-icon {
+    transform: translate(-50%, -50%) rotate(90deg);
+    opacity: 0;
+}
+
+.dark-theme .sun-icon {
+    transform: translate(-50%, -50%) rotate(-90deg);
+    opacity: 0;
+}
+
+.dark-theme .moon-icon {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 1;
+}
+
+/* 补充CSS变量 */
+:root {
+    --primary-700-rgb: 25, 118, 210;
+}
+
+/* 侧边栏切换时的图标细节优化 */
+.sidebar.collapsed .notify-badge,
+.sidebar.collapsed .status-pill,
+.sidebar.collapsed .badge,
+.sidebar.collapsed .count-badge {
+    position: absolute;
+    right: 5px;
+    top: 4px;
+    transform: scale(0.8);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+                right 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                top 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+/* 内容区域随侧边栏调整的动画 */
+.content {
+    transition: margin-left 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                width 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                padding 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+    will-change: margin-left, width;
+}
+
+/* 侧边栏链接容器过渡 */
+.sidebar-nav {
+    transition: padding 0.45s cubic-bezier(0.3, 0, 0.2, 1);
+}
+
+/* 展开/收缩状态转换过渡效果 */
+.sidebar.collapsing {
+    pointer-events: none;
+}
+
+.sidebar-toggle {
+    transition: padding 0.45s cubic-bezier(0.3, 0, 0.2, 1),
+                background-color 0.25s ease;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+    justify-content: center;
+    padding: var(--spacing-2);
+}
+
+/* 页面元素过渡效果 */
+.main-container {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 侧边栏收缩状态的页面内容效果 */
+.sidebar.collapsed + .content .main-container {
+    animation: contentShift 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes contentShift {
+    0% {
+        transform: translateX(0);
+        opacity: 0.9;
+    }
+    50% {
+        opacity: 0.98;
+    }
+    100% {
+        transform: translateX(5px);
+        opacity: 1;
+    }
+}
+
+/* 折叠/展开时防止交互 */
+.sidebar.collapsing {
+    pointer-events: none;
+}
+
+.sidebar.collapsing + .content {
+    pointer-events: none;
+}
+
+/* 侧边栏切换时内容区域微妙变化 */
+.content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to right, rgba(0,0,0,0.02), transparent 15%);
+    opacity: 0;
+    transition: opacity 0.45s ease;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.sidebar.collapsed + .content::before {
+    opacity: 1;
+} 
