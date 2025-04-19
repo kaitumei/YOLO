@@ -492,19 +492,19 @@
             </div>
             
             <div class="player-controls">
-                <button id="playBtn" class="control-btn">
+                <button type="button" id="playBtn" class="control-btn">
                     <i class="fas fa-play"></i> 播放
                 </button>
                 
-                <button id="pauseBtn" class="control-btn secondary">
+                <button type="button" id="pauseBtn" class="control-btn secondary">
                     <i class="fas fa-pause"></i> 暂停
                 </button>
                 
-                <button id="stopBtn" class="control-btn secondary">
+                <button type="button" id="stopBtn" class="control-btn secondary">
                     <i class="fas fa-stop"></i> 停止
                 </button>
                 
-                <button id="fullscreenBtn" class="control-btn secondary">
+                <button type="button" id="fullscreenBtn" class="control-btn secondary">
                     <i class="fas fa-expand"></i> 全屏
                 </button>
                 
@@ -563,10 +563,10 @@
                         </div>
                     </div>
                     <div class="video-actions">
-                        <button class="video-action-btn download" title="下载" onclick="downloadVideo('{{ video.path }}', '{{ video.filename }}')">
+                        <button type="button" class="video-action-btn download" title="下载" onclick="downloadVideo('{{ video.path }}', '{{ video.filename }}')">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="video-action-btn delete" title="删除" onclick="confirmDelete('{{ video.filename }}')">
+                        <button type="button" class="video-action-btn delete" title="删除" onclick="confirmDelete('{{ video.filename }}')">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
@@ -600,8 +600,8 @@
             <div id="deleteFileName" style="margin-top: 10px; font-weight: 500;"></div>
         </div>
         <div class="modal-footer">
-            <button class="modal-btn cancel" onclick="closeModal()">取消</button>
-            <button class="modal-btn delete" id="confirmDeleteBtn">删除</button>
+            <button type="button" class="modal-btn cancel" onclick="closeModal()">取消</button>
+            <button type="button" class="modal-btn delete" id="confirmDeleteBtn">删除</button>
         </div>
     </div>
 </div>

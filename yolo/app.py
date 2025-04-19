@@ -505,11 +505,51 @@ def video_predict():
                 # 检查是否有车辆检测结果
                 vehicles = result.get('vehicles', [])
                 if vehicles and detection_type in ['general', 'vehicle', 'integrated']:
+                    # 确保每个车辆对象都有class_name字段
+                    processed_vehicles = []
+                    for vehicle in vehicles:
+                        vehicle_data = vehicle.copy()  # 创建副本以避免修改原始数据
+                        # 确保包含class_name字段
+                        if 'type' in vehicle and not 'class_name' in vehicle:
+                            vehicle_data['class_name'] = vehicle['type']
+                        if 'class' in vehicle and not 'class_name' in vehicle:
+                            vehicle_data['class_name'] = vehicle['class']
+                        processed_vehicles.append(vehicle_data)
+                    
                     if not any(d.get('frame') == result.get('frame', 0) for d in detections):
                         detections.append({
                             'frame': result.get('frame', 0),
-                            'detections': vehicles
+                            'detections': processed_vehicles
                         })
+        
+        # 记录检测结果数量，帮助调试
+        detection_count = sum(len(d.get('detections', [])) for d in detections)
+        log_info(f"视频处理完成，共提取 {len(detections)} 帧检测结果，{detection_count} 个检测对象")
+        
+        # 如果没有检测到任何目标，添加一个模拟的检测结果
+        if not detections:
+            log_warning("未检测到任何目标，添加模拟数据确保前端显示正常")
+            # 添加模拟检测数据
+            detections.append({
+                'frame': 0,
+                'detections': [
+                    {
+                        'class': '未检测到目标',
+                        'class_name': '未检测到目标',
+                        'confidence': 1.0,
+                        'coordinates': [0, 0, 0, 0]
+                    }
+                ]
+            })
+            
+            # 打印模拟数据
+            log_info(f"添加模拟数据: {detections}")
+        
+        # 打印检测数据的结构，帮助调试
+        if detections:
+            log_info(f"检测数据示例: {detections[0]}")
+            if 'detections' in detections[0] and detections[0]['detections']:
+                log_info(f"检测对象示例: {detections[0]['detections'][0]}")
         
         download_url = f"/download/{os.path.basename(actual_output_path)}"
         streaming_url = f"/stream/{os.path.basename(actual_output_path)}"
@@ -552,7 +592,7 @@ def video_predict():
             'download_url': download_url,
             'stream_url': streaming_url,
             'total_frames': len(processing_results) if isinstance(processing_results, list) else 0,
-            'processing_time': time.time() - os.path.getctime(input_path)
+            'processing_time': int(time.time() - os.path.getctime(input_path))
         })
     except Exception as e:
         log_error(f"视频处理失败: {str(e)}")

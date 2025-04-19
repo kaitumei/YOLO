@@ -193,10 +193,50 @@ class Detector:
                     # 绘制边界框
                     # 基于类型设置颜色
                     custom_color = None
+                    
+                    # 根据类别ID设置不同颜色
+                    if cls_id == 0:  # 小汽车
+                        custom_color = (0, 255, 0)  # 绿色 (BGR)
+                    elif cls_id == 1:  # 公交车
+                        custom_color = (255, 128, 0)  # 蓝紫色
+                    elif cls_id == 2:  # 油罐车
+                        custom_color = (0, 0, 255)  # 红色
+                    elif cls_id == 3:  # 集装箱卡车
+                        custom_color = (255, 0, 0)  # 蓝色
+                    elif cls_id == 4:  # 卡车
+                        custom_color = (0, 255, 255)  # 黄色
+                    elif cls_id == 5:  # 面包车
+                        custom_color = (128, 0, 128)  # 紫色
+                    elif cls_id == 6:  # 皮卡
+                        custom_color = (255, 128, 128)  # 浅蓝色
+                    elif cls_id == 7:  # 特种车辆
+                        custom_color = (0, 165, 255)  # 橙色
+                    elif cls_id == 8:  # 车牌
+                        custom_color = (255, 0, 0)  # 蓝色
+                    elif cls_id == 9:  # 事故
+                        custom_color = (0, 0, 255)  # 红色
+                    elif cls_id == 10:  # 违章停车
+                        custom_color = (0, 140, 255)  # 橙色
+                    elif cls_id == 11:  # 超速
+                        custom_color = (0, 0, 200)  # 暗红色
+                        
+                    # 如果是车辆，并且颜色识别可用，使用车辆颜色
                     if box_type == "vehicle" and cls_id < 8 and "vehicle_rgb" in detection:
-                        rgb = detection["vehicle_rgb"]
-                        # 转换RGB到BGR
-                        custom_color = (int(rgb[2]), int(rgb[1]), int(rgb[0]))
+                        # 检查配置选项
+                        use_class_color = True  # 默认使用类别颜色
+                        # 尝试从全局配置中获取
+                        try:
+                            # 动态导入避免循环导入
+                            import sys
+                            if 'detection' in sys.modules and hasattr(sys.modules['detection'], 'CONFIG'):
+                                use_class_color = sys.modules['detection'].CONFIG.get('use_class_color', True)
+                        except:
+                            pass  # 出错时使用默认值
+                            
+                        if not use_class_color:
+                            rgb = detection["vehicle_rgb"]
+                            # 转换RGB到BGR
+                            custom_color = (int(rgb[2]), int(rgb[1]), int(rgb[0]))
                     
                     draw_fancy_box(result_image, x1, y1, x2, y2, box_type=box_type, custom_color=custom_color)
                     

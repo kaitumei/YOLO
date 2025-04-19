@@ -12,7 +12,7 @@
         <h1>流媒体列表</h1>
         <p class="subtitle">所有活跃的流媒体直播，支持RTMP、HLS和HTTP-FLV多种协议</p>
         <div class="header-actions">
-            <button id="refresh_button" class="btn btn-secondary" title="刷新流媒体列表">
+            <button type="button" id="refresh_button" class="btn btn-secondary" title="刷新流媒体列表">
                 <i class="fas fa-sync-alt"></i> 刷新列表
             </button>
             <a href="/stream/rtmp_push" class="btn btn-primary">
@@ -97,13 +97,13 @@
             <div class="player-header">
                 <h4 id="player_title">未选择流</h4>
                 <div class="player-controls">
-                    <button class="player-control-btn" id="play_pause_btn" title="播放/暂停">
+                    <button type="button" class="player-control-btn" id="play_pause_btn" title="播放/暂停">
                         <i class="fas fa-pause"></i>
                     </button>
-                    <button class="player-control-btn" id="mute_btn" title="静音/取消静音">
+                    <button type="button" class="player-control-btn" id="mute_btn" title="静音/取消静音">
                         <i class="fas fa-volume-up"></i>
                     </button>
-                    <button class="player-control-btn" id="fullscreen_btn" title="全屏">
+                    <button type="button" class="player-control-btn" id="fullscreen_btn" title="全屏">
                         <i class="fas fa-expand"></i>
                     </button>
                     <div class="player-control-select">
@@ -124,21 +124,21 @@
                 <div class="stream-url-item">
                     <span class="url-label"><i class="fas fa-link"></i> RTMP:</span>
                     <input type="text" id="rtmp_url" class="form-control url-input" readonly title="RTMP流地址" aria-label="RTMP流地址" placeholder="RTMP流地址"/>
-                    <button class="url-copy-btn" data-target="rtmp_url" title="复制RTMP地址">
+                    <button type="button" class="url-copy-btn" data-target="rtmp_url" title="复制RTMP地址">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
                 <div class="stream-url-item">
                     <span class="url-label"><i class="fas fa-link"></i> HTTP-FLV:</span>
                     <input type="text" id="flv_url" class="form-control url-input" readonly title="HTTP-FLV流地址" aria-label="HTTP-FLV流地址" placeholder="HTTP-FLV流地址"/>
-                    <button class="url-copy-btn" data-target="flv_url" title="复制HTTP-FLV地址">
+                    <button type="button" class="url-copy-btn" data-target="flv_url" title="复制HTTP-FLV地址">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
                 <div class="stream-url-item">
                     <span class="url-label"><i class="fas fa-link"></i> HLS:</span>
                     <input type="text" id="hls_url" class="form-control url-input" readonly title="HLS流地址" aria-label="HLS流地址" placeholder="HLS流地址"/>
-                    <button class="url-copy-btn" data-target="hls_url" title="复制HLS地址">
+                    <button type="button" class="url-copy-btn" data-target="hls_url" title="复制HLS地址">
                         <i class="fas fa-copy"></i>
                     </button>
                 </div>
@@ -271,12 +271,12 @@
                 <td>${stream.rtmp_url}</td>
                 <td>${stream.runtime || '0:00:00'}</td>
                 <td>
-                    <button class="btn btn-sm btn-info" onclick="showStreamParams('${stream.stream_id}')">
+                    <button type="button" class="btn btn-sm btn-info" onclick="showStreamParams('${stream.stream_id}')">
                         <i class="fas fa-cogs"></i> 查看参数
                     </button>
                 </td>
                 <td>
-                    <button class="btn btn-sm btn-danger" onclick="stopStream('${stream.stream_id}')">
+                    <button type="button" class="btn btn-sm btn-danger" onclick="stopStream('${stream.stream_id}')">
                         <i class="fas fa-stop"></i> 停止
                     </button>
                 </td>

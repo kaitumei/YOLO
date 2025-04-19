@@ -503,6 +503,9 @@
     }
 
     function showResults(response) {
+        // 添加调试信息
+        console.log('收到服务器响应:', response);
+        
         const videoFilename = response.download_url.split('/').pop();
         const downloadUrl = `http://127.0.0.1:5001${response.download_url}`;
         
@@ -511,49 +514,118 @@
         resultInfo.classList.remove('hidden');
         resultInfo.style.display = 'block';
         
-        // 设置处理用时
+        // 设置处理用时（只保留整数部分）
         const processingTime = response.processing_time || '未知';
-        document.getElementById('processingTimeInfo').innerText = `处理用时: ${processingTime}`;
-        document.getElementById('processingTimeValue').innerText = processingTime;
+        const processingTimeInt = typeof processingTime === 'number' ? Math.floor(processingTime) : processingTime;
+        document.getElementById('processingTimeInfo').innerText = `处理用时: ${processingTimeInt}秒`;
+        document.getElementById('processingTimeValue').innerText = `${processingTimeInt}秒`;
         
         // 检查是否有检测数据并显示摘要
         if (response.detections && Array.isArray(response.detections)) {
+            console.log('检测结果数组长度:', response.detections.length);
+            if (response.detections.length > 0) {
+                console.log('第一个检测数据:', response.detections[0]);
+            }
+            
+            // 用于跟踪已经出现过的类别
+            const uniqueClasses = new Set();
             // 计算检测到的对象总数和分类统计
-            const allObjects = [];
-            response.detections.forEach(frameDetections => {
-                if (Array.isArray(frameDetections)) {
-                    frameDetections.forEach(detection => {
-                        allObjects.push(detection.class);
+            const classObjectCounts = {};
+            
+            response.detections.forEach(frameData => {
+                console.log('处理帧数据:', frameData);
+                
+                // 检查是否是带有frame和detections字段的对象结构
+                if (frameData && frameData.detections && Array.isArray(frameData.detections)) {
+                    console.log('处理嵌套检测数据:', frameData.detections.length);
+                    frameData.detections.forEach(detection => {
+                        console.log('处理检测对象:', detection);
+                        
+                        // 尝试获取类别名称，兼容不同的字段名
+                        let className = null;
+                        if (detection.type) {
+                            className = detection.type;
+                        } else if (detection.class_name) {
+                            className = detection.class_name;
+                        } else if (detection.class) {
+                            className = detection.class;
+                        } else if (detection.name) {
+                            className = detection.name;
+                        } else {
+                            className = '未知类别';
+                        }
+                        
+                        // 打印调试信息帮助追踪
+                        console.log('提取的类别:', className, '来源字段:', 
+                            detection.type ? 'type' : 
+                            detection.class_name ? 'class_name' : 
+                            detection.class ? 'class' : 
+                            detection.name ? 'name' : '无');
+                        
+                        // 统计每个类别的数量
+                        classObjectCounts[className] = (classObjectCounts[className] || 0) + 1;
+                        // 记录唯一类别
+                        uniqueClasses.add(className);
+                    });
+                } else if (Array.isArray(frameData)) {
+                    // 如果是旧格式，直接处理数组
+                    console.log('处理普通数组格式:', frameData.length);
+                    frameData.forEach(detection => {
+                        // 尝试获取类别名称，兼容不同的字段名
+                        let className = null;
+                        if (detection.type) {
+                            className = detection.type;
+                        } else if (detection.class_name) {
+                            className = detection.class_name;
+                        } else if (detection.class) {
+                            className = detection.class;
+                        } else if (detection.name) {
+                            className = detection.name;
+                        } else {
+                            className = '未知类别';
+                        }
+                        
+                        // 打印调试信息帮助追踪
+                        console.log('提取的类别:', className, '来源字段:', 
+                            detection.type ? 'type' : 
+                            detection.class_name ? 'class_name' : 
+                            detection.class ? 'class' : 
+                            detection.name ? 'name' : '无');
+                        
+                        // 统计每个类别的数量
+                        classObjectCounts[className] = (classObjectCounts[className] || 0) + 1;
+                        // 记录唯一类别
+                        uniqueClasses.add(className);
                     });
                 }
             });
             
-            // 对象计数
-            const objectCounts = {};
-            allObjects.forEach(obj => {
-                objectCounts[obj] = (objectCounts[obj] || 0) + 1;
-            });
+            // 计算检测到的总对象数
+            const totalObjects = Object.values(classObjectCounts).reduce((sum, count) => sum + count, 0);
             
-            // 更新统计卡片
-            document.getElementById('totalObjectsValue').innerText = allObjects.length;
-            document.getElementById('classesValue').innerText = Object.keys(objectCounts).length;
+            console.log('唯一类别:', Array.from(uniqueClasses));
+            console.log('对象计数:', classObjectCounts);
+            
+            // 更新统计卡片 - 只显示唯一类别的数量，而不是所有检测实例
+            document.getElementById('totalObjectsValue').innerText = totalObjects;
+            document.getElementById('classesValue').innerText = uniqueClasses.size;
             
             // 显示总数
             document.getElementById('objectsDetectedInfo').innerText = 
-                `共检测到 ${allObjects.length} 个目标对象，涵盖 ${Object.keys(objectCounts).length} 种类别`;
+                `共检测到 ${totalObjects} 个目标对象，涵盖 ${uniqueClasses.size} 种类别`;
             
             // 显示对象类别统计
             let summaryHTML = '<h3>目标检测统计</h3><div class="class-item-container">';
             
             // 为每个类别生成随机颜色
             const classColors = {};
-            for (const className of Object.keys(objectCounts)) {
+            for (const className of uniqueClasses) {
                 classColors[className] = generateRandomColor();
             }
             
             // 创建更视觉化的统计
-            for (const [className, count] of Object.entries(objectCounts)) {
-                const percentage = ((count / allObjects.length) * 100).toFixed(1);
+            for (const [className, count] of Object.entries(classObjectCounts)) {
+                const percentage = ((count / totalObjects) * 100).toFixed(1);
                 summaryHTML += `
                     <div class="detect-item class-item">
                         <div class="class-color" style="background-color: ${classColors[className]}"></div>
@@ -568,6 +640,7 @@
             
             document.getElementById('detectionSummary').innerHTML = summaryHTML;
         } else {
+            console.log('没有检测结果或结果格式错误');
             document.getElementById('totalObjectsValue').innerText = '0';
             document.getElementById('classesValue').innerText = '0';
             document.getElementById('objectsDetectedInfo').innerText = '暂无检测数据';

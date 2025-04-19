@@ -156,7 +156,7 @@
             }
         }
         
-        /* 添加加载动画 */
+        /* 添加加载动画 - 优化版 */
         .loading-indicator {
             position: absolute;
             top: 50%;
@@ -165,24 +165,59 @@
             text-align: center;
             display: none;
             z-index: 100;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            border-radius: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 25px;
+            border-radius: 12px;
             color: white;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
         }
         
         .loading-indicator.active {
-            display: block !important; /* 使用 !important 确保覆盖任何其他样式 */
+            display: flex !important;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeIn 0.3s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
         }
         
         .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.1);
             border-radius: 50%;
-            border-top: 4px solid #3498db;
-            width: 40px;
-            height: 40px;
-            margin: 0 auto 10px;
+            border-top: 3px solid #3498db;
+            border-right: 3px solid transparent;
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 15px;
             animation: spin 1s linear infinite;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+        
+        .loading-indicator p {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 5px 0 0;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        .loading-indicator .loading-text:after {
+            content: '...';
+            animation: loadingDots 1.5s infinite;
+            display: inline-block;
+            width: 20px;
+            text-align: left;
+        }
+        
+        @keyframes loadingDots {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
         }
         
         @keyframes spin {
@@ -433,11 +468,69 @@
             border-radius: 4px;
             font-size: 0.9rem;
         }
+
+        /* 添加摄像头按钮样式 */
+        .btn-camera-off {
+            background-color: #6c757d;
+        }
+        
+        /* 按钮禁用时的样式 */
+        .btn:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+        
+        /* 加载中的按钮样式 */
+        .btn-loading {
+            position: relative;
+            color: transparent !important;
+        }
+        
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: calc(50% - 8px);
+            left: calc(50% - 8px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s infinite linear;
+        }
+        
+        /* 监控开关相关样式 */
+        .monitor-switch-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .monitor-switch-btn {
+            font-size: 1.1rem;
+            padding: 10px 20px;
+        }
+        
+        .monitor-status {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
     </style>
 {% endblock %}
 {% block content %}
      <main class="dashboard-container">
         <h1 class="page-title">AI实时监控平台</h1>
+
+        <!-- 添加监控开关按钮 -->
+        <div class="monitor-switch-container" data-monitoring-active="{% if monitoring_active %}true{% else %}false{% endif %}">
+            <button id="monitor-switch-btn" class="btn btn-danger monitor-switch-btn" type="button">
+                <i class="fas fa-power-off"></i> 
+                <span id="monitor-switch-text">启动监控</span>
+            </button>
+            <div id="monitor-status" class="monitor-status">
+                监控当前已关闭
+            </div>
+        </div>
 
         <section id="video-container" aria-label="实时视频监控区域">
             <canvas id="videoFeedCanvas" role="img" aria-label="实时视频画面"></canvas>
@@ -445,7 +538,7 @@
                 <div class="spinner" role="status">
                     <span class="visually-hidden">正在加载，请稍候...</span>
                 </div>
-                <p>正在加载...</p>
+                <p class="loading-text">正在连接</p>
             </div>
             
             <!-- 地图缩略图移动到视频容器内部 -->
@@ -474,16 +567,13 @@
         </footer>
 
         <div class="control-group" aria-label="视频控制">
-            <button class="btn btn-primary" id="pause-resume-btn" aria-label="暂停/继续监控视频">
+            <button class="btn btn-primary" id="pause-resume-btn" aria-label="暂停/继续监控视频" type="button">
                 <i class="fas fa-pause" aria-hidden="true"></i> 暂停
             </button>
-            <button class="btn btn-primary" id="toggle-camera-btn" aria-label="开启/关闭检测">
-                <i class="fas fa-eye" aria-hidden="true"></i> 开启检测
-            </button>
-            <button class="btn btn-secondary" id="capture-btn" aria-label="截图">
+            <button class="btn btn-secondary" id="capture-btn" aria-label="截图" type="button">
                 <i class="fas fa-camera" aria-hidden="true"></i> 截图
             </button>
-            <button class="btn btn-danger" id="record-btn" aria-label="录制视频">
+            <button class="btn btn-danger" id="record-btn" aria-label="录制视频" type="button">
                 <i class="fas fa-video" aria-hidden="true"></i> 录制
             </button>
             <a href="{{ url_for('stream.playback') }}" class="btn btn-info" id="playback-btn" aria-label="查看监控回放">
@@ -513,6 +603,12 @@
             upgrade: false  // 禁用传输升级，减少延迟
         });
 
+        // 添加监控状态变量，默认为关闭状态
+        let monitoringActive = document.querySelector('.monitor-switch-container').dataset.monitoringActive === 'true';
+        
+        // 摄像头状态与监控状态保持一致
+        let isCameraOn = monitoringActive;
+
         const canvas = document.getElementById('videoFeedCanvas');
         const ctx = canvas.getContext('2d');
         let img = new Image();
@@ -530,7 +626,6 @@
         // 新增暂停状态变量和当前帧数据保存
         let isPaused = false;
         let currentFrame = null;
-        let isCameraOn = true; // 新增摄像状态变量
         
         // 添加帧处理队列
         let frameQueue = [];
@@ -560,6 +655,9 @@
             updateConnectionStatus(true);
             // 连接成功后显示通知
             showNotification('连接成功', '已成功连接到监控服务器');
+            
+            // 连接成功后更新监控状态
+            updateMonitoringStatus();
         });
 
         socket.on('disconnect', () => {
@@ -718,8 +816,9 @@
             }
         }
         
-        // 请求通知权限
+        // 在页面加载时设置初始状态
         document.addEventListener('DOMContentLoaded', function() {
+            // 已有代码
             if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
                 Notification.requestPermission();
             }
@@ -727,6 +826,14 @@
             document.querySelector('.dashboard-container').classList.add('fade-in');
             // 初始显示加载指示器
             document.getElementById('loadingIndicator').classList.add('active');
+            
+            // 更新监控状态显示
+            updateMonitoringStatus();
+            
+            // 如果监控默认关闭，隐藏加载指示器
+            if (!monitoringActive) {
+                document.getElementById('loadingIndicator').classList.remove('active');
+            }
         });
 
         // 改进的视频流恢复函数
@@ -759,6 +866,9 @@
 
         // 改进的帧处理函数，在收到第一帧时清除视频恢复超时
         socket.on('update_frame', async (data) => {
+            // 如果监控未开启，忽略所有帧数据
+            if (!monitoringActive) return;
+            
             try {
                 // 清除可能存在的视频恢复超时
                 if (window.currentStreamTimeout) {
@@ -772,23 +882,39 @@
                     }
                 }
                 
-                if (!isCameraOn || !data.image) return;
+                // 清除可能存在的摄像头连接超时
+                if (window.cameraConnectionTimeout) {
+                    clearTimeout(window.cameraConnectionTimeout);
+                    window.cameraConnectionTimeout = null;
+                }
+                
+                if (!isCameraOn) return;
                 if (isPaused) {
                     currentFrame = data;
                     return;
                 }
 
-                // 使用帧队列处理，避免处理积压
-                if (frameQueue.length >= MAX_QUEUE_SIZE) {
-                    // 队列已满，丢弃最旧的帧
-                    frameQueue.shift();
+                // 处理检测结果
+                if (data.detections && Array.isArray(data.detections)) {
+                    // 使用防抖函数更新检测信息，避免过于频繁的DOM更新
+                    debounce(() => updateDetectionInfo(data.detections, true), 100)();
+                    currentFrame = data;
                 }
                 
-                frameQueue.push(data);
-                
-                // 如果当前没有处理帧，则开始处理
-                if (!isProcessingFrame) {
-                    processNextFrame();
+                // 检查是否有图像数据，如果有则处理图像
+                if (data.image && data.image.length > 0) {
+                    // 使用帧队列处理，避免处理积压
+                    if (frameQueue.length >= MAX_QUEUE_SIZE) {
+                        // 队列已满，丢弃最旧的帧
+                        frameQueue.shift();
+                    }
+                    
+                    frameQueue.push(data);
+                    
+                    // 如果当前没有处理帧，则开始处理
+                    if (!isProcessingFrame) {
+                        processNextFrame();
+                    }
                 }
             } catch (err) {
                 console.error('帧处理错误:', err);
@@ -798,7 +924,7 @@
         
         // 处理下一帧的函数
         function processNextFrame() {
-            if (frameQueue.length === 0 || isPaused) {
+            if (frameQueue.length === 0 || isPaused || !monitoringActive) {
                 isProcessingFrame = false;
                 return;
             }
@@ -818,11 +944,23 @@
             const offscreenCtx = offscreenCanvas.getContext('2d');
             
             img.onload = () => {
+                // 如果在图像加载期间监控被关闭，则放弃处理
+                if (!monitoringActive) {
+                    isProcessingFrame = false;
+                    return;
+                }
+                
                 offscreenCanvas.width = img.width;
                 offscreenCanvas.height = img.height;
                 offscreenCtx.drawImage(img, 0, 0);
                 
                 requestAnimationFrame(() => {
+                    // 再次检查监控状态
+                    if (!monitoringActive) {
+                        isProcessingFrame = false;
+                        return;
+                    }
+                    
                     canvas.width = offscreenCanvas.width;
                     canvas.height = offscreenCanvas.height;
                     ctx.drawImage(offscreenCanvas, 0, 0);
@@ -1035,34 +1173,99 @@
             }
         });
 
-        // 打开/关闭摄像功能
-        document.getElementById('toggle-camera-btn').addEventListener('click', () => {
-            isCameraOn = !isCameraOn;
-            const btn = document.getElementById('toggle-camera-btn');
-
-            if (isCameraOn) {
-                btn.querySelector('.text').textContent = '关闭摄像';
-                btn.classList.remove('btn-camera-off');
+        // 监控开关按钮点击事件
+        document.getElementById('monitor-switch-btn').addEventListener('click', function() {
+            // 切换监控状态
+            monitoringActive = !monitoringActive;
+            
+            // 同时也切换摄像头状态
+            isCameraOn = monitoringActive;
+            
+            // 发送切换请求到服务器
+            socket.emit('toggle_monitoring', { active: monitoringActive });
+            
+            // 如果开启监控，则开启摄像头
+            if (monitoringActive) {
+                // 显示加载指示器
+                document.getElementById('loadingIndicator').classList.add('active');
+                
+                // 设置连接超时，避免无限等待
+                const connectionTimeout = setTimeout(() => {
+                    if (document.getElementById('loadingIndicator').classList.contains('active')) {
+                        showNotification('连接超时', '无法连接到视频流，请重试', 'warning');
+                        document.getElementById('loadingIndicator').classList.remove('active');
+                        monitoringActive = false;
+                        isCameraOn = false;
+                        updateMonitoringStatus();
+                    }
+                }, 10000); // 10秒超时
+                
+                // 存储超时ID，以便在成功时清除
+                window.cameraConnectionTimeout = connectionTimeout;
                 
                 // 重新开始获取视频流
                 socket.emit('client_camera_on');
-                showNotification('摄像头已开启', '正在连接视频流...', 'info');
-                document.getElementById('loadingIndicator').classList.add('active');
             } else {
-                btn.querySelector('.text').textContent = '打开摄像';
-                btn.classList.add('btn-camera-off');
+                // 清除可能存在的连接超时
+                if (window.cameraConnectionTimeout) {
+                    clearTimeout(window.cameraConnectionTimeout);
+                    window.cameraConnectionTimeout = null;
+                }
                 
                 // 停止获取视频流
                 socket.emit('client_camera_off');
-                showNotification('摄像头已关闭', '视频流已停止', 'info');
                 
                 // 清空画布
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
                 // 清空检测结果
                 document.getElementById('detections-container').innerHTML = 
-                    '<div class="detection-item">摄像头已关闭，没有检测数据</div>';
+                    '<div class="detection-item">监控功能已关闭，没有检测数据</div>';
             }
+            
+            // 更新按钮状态（即时反馈）
+            updateMonitoringStatus();
+            
+            // 显示通知
+            showNotification(
+                monitoringActive ? '监控已开启' : '监控已关闭', 
+                monitoringActive ? '实时视频监控已启动' : '实时视频监控已停止',
+                monitoringActive ? 'info' : 'warning'
+            );
         });
+
+        // 更新监控开关按钮和状态显示
+        function updateMonitoringStatus() {
+            const switchBtn = document.getElementById('monitor-switch-btn');
+            const switchText = document.getElementById('monitor-switch-text');
+            const statusText = document.getElementById('monitor-status');
+            
+            if (monitoringActive) {
+                switchBtn.classList.remove('btn-danger');
+                switchBtn.classList.add('btn-success');
+                switchText.textContent = '关闭监控';
+                statusText.textContent = '监控运行中';
+                statusText.style.color = '#2ecc71';
+            } else {
+                switchBtn.classList.remove('btn-success');
+                switchBtn.classList.add('btn-danger');
+                switchText.textContent = '启动监控';
+                statusText.textContent = '监控当前已关闭';
+                statusText.style.color = '#e74c3c';
+                
+                // 清空画布和检测结果
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                document.getElementById('detections-container').innerHTML = 
+                    '<div class="detection-item">监控功能已关闭，没有检测数据</div>';
+                document.getElementById('fps-counter').textContent = '0 FPS';
+            }
+            
+            // 更新摄像头按钮状态（隐藏原开启检测按钮，功能已整合）
+            const cameraBtn = document.getElementById('toggle-camera-btn');
+            if (cameraBtn) {
+                cameraBtn.style.display = 'none';
+            }
+        }
 
         // 截图功能
         document.getElementById('capture-btn').addEventListener('click', () => {
@@ -1640,5 +1843,40 @@
 
         // 每5分钟更新一次位置
         setInterval(showCurrentLocation, 300000);
+        
+        // 添加视频处理完成的事件监听
+        socket.on('video_process_complete', function(data) {
+            console.log('视频处理完成:', data);
+            showNotification('视频处理完成', '检测视频已处理完成，可以点击下载', 'info');
+            
+            // 添加或更新下载按钮
+            let downloadBtn = document.getElementById('video-download-btn');
+            if (!downloadBtn) {
+                downloadBtn = document.createElement('button');
+                downloadBtn.id = 'video-download-btn';
+                downloadBtn.className = 'btn btn-success';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i> 下载处理视频';
+                document.querySelector('.control-group').appendChild(downloadBtn);
+            }
+            
+            downloadBtn.onclick = function() {
+                window.location.href = data.download_url;
+            };
+            
+            downloadBtn.style.display = 'inline-block';
+        });
+
+        // 监听监控状态变更事件
+        socket.on('monitoring_status', (data) => {
+            console.log('收到监控状态更新:', data);
+            monitoringActive = data.active;
+            updateMonitoringStatus();
+        });
+        
+        // 监听监控未激活通知
+        socket.on('monitoring_inactive', (data) => {
+            console.log('监控未激活消息:', data);
+            showNotification('监控未开启', '请先开启监控功能', 'warning');
+        });
     </script>
 {% endblock %}

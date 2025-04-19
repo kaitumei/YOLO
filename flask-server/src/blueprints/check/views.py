@@ -39,6 +39,9 @@ redis_client = redis.Redis(
     db=1  # 使用单独的数据库存储文件内容
 )
 
+# 添加监控状态全局变量，默认为关闭
+monitoring_active = False
+
 # --------------------------------------------------------#
 # ----------------------图片检测(已完成)---------------------#
 # --------------------------------------------------------#
@@ -157,15 +160,35 @@ def picture():
 
 @bp.route('/monitor')
 def monitor():
-    return render_template('check/monitor.html')
+    # 传递监控的默认状态到模板
+    return render_template('check/monitor.html', monitoring_active=monitoring_active)
 
 @socketio.on('connect')
 def handle_connect():
     print('Web客户端连接成功')
+    # 发送当前监控状态给新连接的客户端
+    emit('monitoring_status', {'active': monitoring_active})
+
+# 添加切换监控状态的事件处理函数
+@socketio.on('toggle_monitoring')
+def handle_toggle_monitoring(data):
+    global monitoring_active
+    # 切换监控状态
+    monitoring_active = data.get('active', False)
+    # 广播新的监控状态给所有客户端
+    socketio.emit('monitoring_status', {'active': monitoring_active})
+    print(f'监控状态已切换为: {"开启" if monitoring_active else "关闭"}')
+    return {'success': True, 'active': monitoring_active}
 
 @socketio.on('detection_frame')
 def handle_frame(data):
-    emit('update_frame', data, broadcast=True)
+    # 只有当监控处于开启状态时才广播帧数据
+    global monitoring_active
+    if monitoring_active:
+        emit('update_frame', data, broadcast=True)
+    else:
+        # 可选: 只对发送者回复监控未开启的消息
+        emit('monitoring_inactive', {'message': '监控当前处于关闭状态'})
 
 #截图
 @socketio.on('capture')
@@ -456,6 +479,52 @@ def video_predict():
         result = response.json()
         print(f"[视频检测] YOLO处理结果: {result}")
         
+        # 通过socketio广播检测结果给所有连接的客户端
+        if 'detections' in result:
+            try:
+                detections = result['detections']
+                # 添加更详细的日志记录，用于调试
+                detection_count = 0
+                frame_count = 0
+                
+                # 打印整个检测结果以便调试
+                print(f"[视频检测] 原始检测结果数据: {detections}")
+                
+                if isinstance(detections, list):
+                    frame_count = len(detections)
+                    for det in detections:
+                        if isinstance(det, dict) and 'detections' in det:
+                            detection_count += len(det['detections'])
+                            # 检查检测对象的结构
+                            if det['detections'] and len(det['detections']) > 0:
+                                first_obj = det['detections'][0]
+                                print(f"[视频检测] 检测对象结构: {first_obj}")
+                                print(f"[视频检测] 检测对象字段: {list(first_obj.keys())}")
+                
+                print(f"[视频检测] 发送检测结果到前端: {frame_count} 帧数据，共 {detection_count} 个检测对象")
+                
+                # 记录检测结果的结构，帮助调试
+                if len(detections) > 0:
+                    sample = detections[0]
+                    print(f"[视频检测] 检测结果样本结构: {type(sample)}")
+                    if isinstance(sample, dict):
+                        print(f"[视频检测] 检测结果字段: {list(sample.keys())}")
+                        if 'detections' in sample and len(sample['detections']) > 0:
+                            print(f"[视频检测] 检测对象样本: {sample['detections'][0]}")
+                
+                # 将结果通过socketio发送给前端
+                socketio.emit('update_frame', {
+                    'detections': detections,
+                    'detection_type': result.get('detection_type', 'general'),
+                    'image': ''  # 添加空图像字段以兼容前端代码
+                })
+                
+                print(f"[视频检测] 检测结果已发送到前端")
+            except Exception as e:
+                print(f"[视频检测] 发送检测结果失败: {str(e)}")
+                import traceback
+                traceback.print_exc()
+        
         # 下载处理后的视频
         download_url = result.get('download_url', '')
         if download_url:
@@ -507,6 +576,13 @@ def video_predict():
                     result['record_filename'] = record_filename
                     
                     print(f"[视频检测] 处理完成，更新的下载URL: {result['download_url']}")
+                    
+                    # 发送处理完成通知
+                    socketio.emit('video_process_complete', {
+                        'status': '视频处理完成',
+                        'download_url': result['download_url'],
+                        'filename': output_filename
+                    })
                 else:
                     print(f"[视频检测] 下载视频失败，状态码: {download_response.status_code}, 内容: {download_response.text[:200]}")
                     return jsonify({"error": f"下载处理后的视频失败: HTTP {download_response.status_code}"}), 500

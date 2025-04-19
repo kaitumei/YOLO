@@ -386,6 +386,8 @@ def process_video(video_path, output_path=None, detector=None,
                                         # 添加到处理结果
                                         frame_result['vehicles'].append({
                                             'type': class_name,
+                                            'class': class_name,  # 添加class字段以兼容前端
+                                            'class_name': class_name,  # 添加class_name字段以兼容前端
                                             'box': box,
                                             'conf': float(conf),
                                             'color': vehicle_color,
@@ -396,6 +398,8 @@ def process_video(video_path, output_path=None, detector=None,
                                         vehicle_boxes.append({
                                             'box': box,
                                             'type': class_name,
+                                            'class': class_name,  # 添加class字段以兼容前端
+                                            'class_name': class_name,  # 添加class_name字段以兼容前端
                                             'conf': float(conf),
                                             'color': vehicle_color,
                                             'rgb': (0, 0, 255)  # 默认红色 (BGR)
@@ -424,6 +428,8 @@ def process_video(video_path, output_path=None, detector=None,
                                         # 添加到处理结果
                                         frame_result['license_plates'].append({
                                             'text': plate_text,
+                                            'class': '车牌',  # 添加class字段以兼容前端
+                                            'class_name': '车牌',  # 添加class_name字段以兼容前端
                                             'box': box,
                                             'conf': float(plate_conf or conf),
                                             'color': plate_color
@@ -433,6 +439,8 @@ def process_video(video_path, output_path=None, detector=None,
                                         plate_detections.append({
                                             'box': box,
                                             'text': plate_text,
+                                            'class': '车牌',  # 添加class字段以兼容前端
+                                            'class_name': '车牌',  # 添加class_name字段以兼容前端
                                             'conf': float(plate_conf or conf),
                                             'color': plate_color,
                                             'bg_color': bg_color

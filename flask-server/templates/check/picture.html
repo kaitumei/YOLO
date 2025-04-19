@@ -14,18 +14,18 @@
         background-color: rgba(0, 0, 0, 0.03);
         border-top: 1px solid rgba(0, 0, 0, 0.05);
     }
-    
+
     .image-info i {
         margin-right: 8px;
         color: var(--primary-500);
     }
-    
+
     .image-info span {
         text-overflow: ellipsis;
         overflow: hidden;
         white-space: nowrap;
     }
-    
+
     /* 错误消息样式 */
     .error-message {
         background-color: #ffebee;
@@ -34,18 +34,18 @@
         margin: 15px 0;
         border-radius: 4px;
     }
-    
+
     .error-message-content {
         display: flex;
         align-items: center;
     }
-    
+
     .error-icon {
         color: #f44336;
         margin-right: 10px;
         font-size: 20px;
     }
-    
+
     /* 图片加载优化 */
     .image-container {
         position: relative;
@@ -54,16 +54,16 @@
         background-color: #f8f9fa;
         border-radius: 4px;
     }
-    
+
     .image-container img {
         opacity: 0;
         transition: opacity 0.5s ease;
     }
-    
+
     .image-container img.loaded {
         opacity: 1;
     }
-    
+
     .image-container .image-placeholder {
         position: absolute;
         top: 0;
@@ -78,7 +78,7 @@
         z-index: 1;
         transition: opacity 0.3s ease;
     }
-    
+
     .image-container .image-placeholder .spinner {
         width: 40px;
         height: 40px;
@@ -88,11 +88,11 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
-    
+
     /* 改进的加载覆盖层 */
     .loading-overlay {
         position: fixed;
@@ -110,12 +110,12 @@
         visibility: hidden;
         transition: opacity 0.3s ease, visibility 0.3s ease;
     }
-    
+
     .loading-overlay.visible {
         opacity: 1;
         visibility: visible;
     }
-    
+
     .loading-overlay .spinner {
         width: 60px;
         height: 60px;
@@ -125,14 +125,14 @@
         animation: spin 1s linear infinite;
         margin-bottom: 15px;
     }
-    
+
     .loading-overlay .loading-text {
         font-size: 1rem;
         color: #333;
         margin-top: 10px;
         font-weight: 500;
     }
-    
+
     .loading-overlay .progress-container {
         width: 200px;
         height: 4px;
@@ -141,7 +141,7 @@
         margin-top: 15px;
         overflow: hidden;
     }
-    
+
     .loading-overlay .progress-bar {
         height: 100%;
         width: 0%;
@@ -149,32 +149,73 @@
         border-radius: 4px;
         transition: width 0.4s ease;
     }
-    
+
     /* 骨架屏效果 */
     .skeleton {
         background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
         background-size: 200% 100%;
         animation: skeleton-loading 1.5s infinite;
     }
-    
+
     @keyframes skeleton-loading {
         0% { background-position: 200% 0; }
         100% { background-position: -200% 0; }
     }
-    
+
     .skeleton-text {
         height: 14px;
         margin-bottom: 8px;
         border-radius: 4px;
     }
-    
+
     .skeleton-header {
         height: 24px;
         width: 40%;
         margin-bottom: 15px;
         border-radius: 4px;
     }
-    
+
+    /* 文件预览样式 */
+    .file-preview {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .preview-image {
+        width: 100%;
+        height: 120px;
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: 4px;
+        margin-bottom: 8px;
+    }
+
+    .preview-info {
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
+        background-color: rgba(0, 0, 0, 0.03);
+        border-radius: 4px;
+    }
+
+    .file-name {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .file-size {
+        font-size: 0.8rem;
+        color: #666;
+    }
+
     /* 图片查看器优化 */
     .image-viewer {
         position: fixed;
@@ -191,12 +232,12 @@
         visibility: hidden;
         transition: opacity 0.3s ease;
     }
-    
+
     .image-viewer.visible {
         opacity: 1;
         visibility: visible;
     }
-    
+
     .image-viewer.loading::before {
         content: "";
         position: absolute;
@@ -210,30 +251,30 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
     }
-    
+
     .viewer-image {
         max-width: 90%;
         max-height: 90%;
         transition: transform 0.3s ease;
     }
-    
+
     /* 表格行加载动画 */
     .result-table tbody tr {
         opacity: 0;
         transform: translateY(10px);
         transition: opacity 0.3s ease, transform 0.3s ease;
     }
-    
+
     .result-table tbody tr.show {
         opacity: 1;
         transform: translateY(0);
     }
-    
+
     .highlight-row {
         background-color: rgba(0, 123, 255, 0.1);
         transition: background-color 0.3s ease;
     }
-    
+
     /* 新增下载按钮样式 */
     .download-results-btn {
         display: inline-flex;
@@ -249,15 +290,15 @@
         margin-left: 10px;
         transition: background-color 0.2s;
     }
-    
+
     .download-results-btn:hover {
         background-color: #218838;
     }
-    
+
     .download-results-btn svg {
         margin-right: 8px;
     }
-    
+
     .results-actions {
         display: flex;
         align-items: center;
@@ -356,10 +397,10 @@
         <div class="results-header">
             <h2>检测到的目标 <span class="results-count">{{ result|length }}</span></h2>
         </div>
-        
+
         <!-- 添加导出按钮 -->
         <div class="results-actions">
-            <button class="download-results-btn" onclick="downloadDetectionResults()">
+            <button type="button" class="download-results-btn" onclick="downloadDetectionResults()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -368,7 +409,7 @@
                 导出检测数据(CSV)
             </button>
         </div>
-        
+
         <div class="result-table-container">
             <table class="result-table">
                 <thead>
@@ -391,7 +432,7 @@
                         <td><span class="confidence-value" data-raw-confidence="{{ result.confidence }}">{{ result.confidence }}</span></td>
                         <td class="coordinates-cell">{{ result.coordinates|join(', ') }}</td>
                         <td>
-                            <button class="detail-btn" onclick="showDetails(this)" aria-label="查看目标{{ result.class_name }}的详细信息" title="查看详情">
+                            <button type="button" class="detail-btn" onclick="showDetails(this)" aria-label="查看目标{{ result.class_name }}的详细信息" title="查看详情">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 详情
                             </button>
@@ -406,7 +447,7 @@
     <!-- 目标详情弹窗 -->
     <div class="modal" id="objectDetailsModal">
         <div class="modal-content">
-            <button class="close-btn" onclick="closeModal()" title="关闭详情">
+            <button type="button" class="close-btn" onclick="closeModal()" title="关闭详情">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18.3 5.71a.996.996 0 00-1.41 0L12 10.59 7.11 5.7A.996.996 0 105.7 7.11L10.59 12 5.7 16.89a.996.996 0 101.41 1.41L12 13.41l4.89 4.89a.996.996 0 101.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"/></svg>
             </button>
             <div class="modal-header">
@@ -429,12 +470,12 @@
 
     <!-- 图片查看器 -->
     <div class="image-viewer" id="imageViewer">
-        <button class="close-viewer" onclick="closeImageViewer()" title="关闭查看器">
+        <button type="button" class="close-viewer" onclick="closeImageViewer()" title="关闭查看器">
             <i class="fas fa-times"></i>
         </button>
         <div class="zoom-controls">
-            <button class="zoom-btn" onclick="zoomOut()" title="缩小">-</button>
-            <button class="zoom-btn" onclick="zoomIn()" title="放大">+</button>
+            <button type="button" class="zoom-btn" onclick="zoomOut()" title="缩小">-</button>
+            <button type="button" class="zoom-btn" onclick="zoomIn()" title="放大">+</button>
         </div>
         <img id="viewerImage" class="viewer-image" alt="查看器图片">
     </div>
@@ -466,7 +507,7 @@
             const rawConfidence = parseFloat(element.getAttribute('data-raw-confidence'));
             element.textContent = formatConfidence(rawConfidence);
         });
-        
+
         // 逐行显示检测结果表格
         const resultRows = document.querySelectorAll('.result-row');
         resultRows.forEach((row, index) => {
@@ -475,26 +516,26 @@
             }, 100 * index); // 每行延迟100ms显示
         });
     });
-    
+
     // 格式化置信度为两位小数
     function formatConfidence(value) {
         // 确保值是数字
         const numValue = parseFloat(value);
         if (isNaN(numValue)) return value;
-        
+
         // 格式化为两位小数
         return numValue.toFixed(2);
     }
-    
+
     // 显示加载动画，同时模拟进度
     function showLoading() {
         const loadingOverlay = document.getElementById('loadingOverlay');
         const progressBar = document.getElementById('loadingProgress');
         loadingOverlay.classList.add('visible');
-        
+
         // 重置进度条
         progressBar.style.width = '0%';
-        
+
         // 模拟加载进度
         let progress = 0;
         const interval = setInterval(() => {
@@ -506,38 +547,38 @@
             }
             progressBar.style.width = progress + '%';
         }, 300);
-        
+
         // 存储interval ID以便在页面卸载时清除
         window._loadingInterval = interval;
     }
-    
+
     // 隐藏加载动画
     function hideLoading() {
         const loadingOverlay = document.getElementById('loadingOverlay');
         const progressBar = document.getElementById('loadingProgress');
-        
+
         // 完成进度条动画
         progressBar.style.width = '100%';
-        
+
         // 清除进度条interval
         if (window._loadingInterval) {
             clearInterval(window._loadingInterval);
         }
-        
+
         // 延迟关闭加载覆盖层，显示完成效果
         setTimeout(() => {
             loadingOverlay.classList.remove('visible');
         }, 500);
     }
-    
+
     // 图片加载完成处理
     function imageLoaded(imgElement) {
         // 添加loaded类以显示图片
         imgElement.classList.add('loaded');
-        
+
         // 获取上级容器
         const container = imgElement.parentElement;
-        
+
         // 移除加载占位符
         const placeholder = container.querySelector('.image-placeholder');
         if (placeholder) {
@@ -552,19 +593,19 @@
     // 处理图片加载失败
     function handleImageError(imgElement, imgType) {
         console.error(`${imgType}加载失败: ${imgElement.src}`);
-        
+
         // 获取容器
         const container = imgElement.parentElement;
-        
+
         // 移除加载中占位符
         const placeholder = container.querySelector('.image-placeholder');
         if (placeholder) {
             placeholder.remove();
         }
-        
+
         // 隐藏图片
         imgElement.style.display = 'none';
-        
+
         // 创建错误提示
         const errorMsg = document.createElement('div');
         errorMsg.classList.add('image-error');
@@ -579,10 +620,10 @@
         const container = buttonElement.closest('.image-container');
         const errorElement = buttonElement.closest('.image-error');
         const imgElement = container.querySelector('img');
-        
+
         // 移除错误信息
         container.removeChild(errorElement);
-        
+
         // 创建新的加载占位符
         const loadingElement = document.createElement('div');
         loadingElement.classList.add('image-placeholder');
@@ -590,14 +631,14 @@
         loadingElement.style.display = 'flex';
         loadingElement.innerHTML = '<div class="spinner"></div><p>重新加载中...</p>';
         container.appendChild(loadingElement);
-        
+
         // 重新加载图片
         const newImg = new Image();
         newImg.onload = function() {
             // 图片加载成功
             imgElement.src = imgSrc + '?t=' + new Date().getTime(); // 添加时间戳避免缓存
             imgElement.style.display = 'block';
-            
+
             // 触发imageLoaded函数
             imageLoaded(imgElement);
         };
@@ -624,7 +665,7 @@
 
         const modal = document.getElementById('objectDetailsModal');
         modal.classList.add('visible');
-        
+
         // 高亮显示当前行
         row.classList.add('highlight-row');
     }
@@ -632,7 +673,7 @@
     function closeModal() {
         const modal = document.getElementById('objectDetailsModal');
         modal.classList.remove('visible');
-        
+
         // 移除所有高亮
         document.querySelectorAll('.highlight-row').forEach(row => {
             row.classList.remove('highlight-row');
@@ -642,37 +683,37 @@
     // 增强的图片查看器功能
     function showImageViewer(src) {
         const viewerImg = document.getElementById('viewerImage');
-        
+
         // 显示加载中提示
         const imageViewer = document.getElementById('imageViewer');
         imageViewer.classList.add('loading');
         imageViewer.classList.add('visible');
-        
+
         // 为查看器中的图片添加加载事件
         viewerImg.onload = function() {
             imageViewer.classList.remove('loading');
         };
-        
+
         // 设置图片源
         viewerImg.src = src;
         viewerImg.style.transform = `scale(${currentZoom}) translate(0px, 0px)`;
-        
+
         // 重置缩放和位置
         currentZoom = 1;
         translateX = 0;
         translateY = 0;
-        
+
         // 设置拖拽事件监听
         viewerImg.addEventListener('mousedown', startDrag);
         document.addEventListener('mousemove', drag);
         document.addEventListener('mouseup', endDrag);
-        
+
         // 触摸设备支持
         viewerImg.addEventListener('touchstart', handleTouchStart);
         viewerImg.addEventListener('touchmove', handleTouchMove);
         viewerImg.addEventListener('touchend', handleTouchEnd);
     }
-    
+
     // 拖拽功能
     function startDrag(e) {
         e.preventDefault();
@@ -680,21 +721,21 @@
         startX = e.clientX - translateX;
         startY = e.clientY - translateY;
     }
-    
+
     function drag(e) {
         if (!isDragging) return;
         e.preventDefault();
-        
+
         translateX = e.clientX - startX;
         translateY = e.clientY - startY;
-        
+
         updateImageTransform();
     }
-    
+
     function endDrag() {
         isDragging = false;
     }
-    
+
     // 触摸事件处理
     function handleTouchStart(e) {
         const touch = e.touches[0];
@@ -702,22 +743,22 @@
         startY = touch.clientY - translateY;
         isDragging = true;
     }
-    
+
     function handleTouchMove(e) {
         if (!isDragging) return;
         e.preventDefault();
-        
+
         const touch = e.touches[0];
         translateX = touch.clientX - startX;
         translateY = touch.clientY - startY;
-        
+
         updateImageTransform();
     }
-    
+
     function handleTouchEnd() {
         isDragging = false;
     }
-    
+
     function updateImageTransform() {
         const viewerImg = document.getElementById('viewerImage');
         viewerImg.style.transform = `scale(${currentZoom}) translate(${translateX/currentZoom}px, ${translateY/currentZoom}px)`;
@@ -725,20 +766,20 @@
 
     function closeImageViewer() {
         const imageViewer = document.getElementById('imageViewer');
-        
+
         // 添加淡出效果
         imageViewer.style.opacity = '0';
-        
+
         setTimeout(() => {
             imageViewer.classList.remove('visible');
             imageViewer.style.opacity = ''; // 重置opacity
-            
+
             // 移除事件监听器
             const viewerImg = document.getElementById('viewerImage');
             viewerImg.removeEventListener('mousedown', startDrag);
             document.removeEventListener('mousemove', drag);
             document.removeEventListener('mouseup', endDrag);
-            
+
             viewerImg.removeEventListener('touchstart', handleTouchStart);
             viewerImg.removeEventListener('touchmove', handleTouchMove);
             viewerImg.removeEventListener('touchend', handleTouchEnd);
@@ -771,7 +812,7 @@
                 zoomOut();
             }
         }
-        
+
         // 如果模态框打开，ESC键关闭
         if (document.getElementById('objectDetailsModal').classList.contains('visible') && e.key === 'Escape') {
             closeModal();
@@ -784,7 +825,7 @@
             closeImageViewer();
         }
     });
-    
+
     // 点击模态框外部关闭
     document.getElementById('objectDetailsModal').addEventListener('click', function(e) {
         if (e.target === this) {
@@ -795,7 +836,7 @@
     // 页面加载完成后隐藏加载动画
     window.addEventListener('load', function() {
         hideLoading();
-        
+
         // 添加图片加载状态检查
         const checkImagesLoaded = () => {
             // 检查结果页面是否存在
@@ -820,10 +861,10 @@
                 });
             }
         };
-        
+
         // 等待DOM完全加载后执行图片检查
         setTimeout(checkImagesLoaded, 300);
-        
+
         // 格式化置信度显示
         const confidenceElements = document.querySelectorAll('.confidence-value');
         confidenceElements.forEach(element => {
@@ -834,7 +875,7 @@
             }
         });
     });
-    
+
     // 鼠标滚轮控制缩放
     document.getElementById('imageViewer').addEventListener('wheel', function(e) {
         e.preventDefault();
@@ -844,40 +885,40 @@
             zoomOut();
         }
     });
-    
+
     // 文件上传界面交互
     const fileInput = document.getElementById('image-upload');
     const fileLabel = document.querySelector('.file-input-label');
-    
+
     if (fileInput && fileLabel) {
         fileInput.addEventListener('change', function() {
             if (this.files.length > 0) {
                 const fileName = this.files[0].name;
                 originalFileName = fileName; // 保存文件名
-                
+
                 // 如果存在结果页面的文件名显示元素，则也更新它
                 const originalImageNameElement = document.getElementById('originalImageName');
                 if (originalImageNameElement) {
                     originalImageNameElement.textContent = fileName;
                 }
-                
+
                 const fileIcon = fileLabel.querySelector('.file-input-icon');
                 const fileText = fileLabel.querySelector('.file-input-text');
-                
+
                 fileIcon.innerHTML = '<i class="fas fa-file-image"></i>';
-                fileText.textContent = `已选择: ${fileName}`;
+                fileText.textContent = `已选择文件`;
                 fileLabel.style.borderColor = 'var(--primary-500)';
-                
+
                 // 显示预览
                 const previewContainer = document.createElement('div');
                 previewContainer.className = 'file-preview';
-                
+
                 // 如果已经有预览，则替换它
                 const existingPreview = fileLabel.querySelector('.file-preview');
                 if (existingPreview) {
                     existingPreview.remove();
                 }
-                
+
                 // 创建文件预览
                 const file = this.files[0];
                 if (file.type.match('image.*')) {
@@ -886,8 +927,8 @@
                         previewContainer.innerHTML = `
                             <div class="preview-image" style="background-image: url('${e.target.result}')"></div>
                             <div class="preview-info">
-                                <div>${file.name}</div>
-                                <div>${(file.size / 1024).toFixed(1)} KB</div>
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-size">${(file.size / 1024).toFixed(1)} KB</div>
                             </div>
                         `;
                         fileLabel.appendChild(previewContainer);
@@ -896,42 +937,42 @@
                 }
             }
         });
-        
+
         // 拖放支持
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             fileLabel.addEventListener(eventName, preventDefaults, false);
         });
-        
+
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
         }
-        
+
         ['dragenter', 'dragover'].forEach(eventName => {
             fileLabel.addEventListener(eventName, highlight, false);
         });
-        
+
         ['dragleave', 'drop'].forEach(eventName => {
             fileLabel.addEventListener(eventName, unhighlight, false);
         });
-        
+
         function highlight() {
             fileLabel.style.backgroundColor = 'rgba(76, 175, 80, 0.1)';
             fileLabel.style.borderColor = 'var(--primary-500)';
         }
-        
+
         function unhighlight() {
             fileLabel.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
             fileLabel.style.borderColor = 'rgba(76, 175, 80, 0.3)';
         }
-        
+
         fileLabel.addEventListener('drop', handleDrop, false);
-        
+
         function handleDrop(e) {
             const dt = e.dataTransfer;
             const files = dt.files;
             fileInput.files = files;
-            
+
             // 触发change事件以显示预览
             const event = new Event('change', { bubbles: true });
             fileInput.dispatchEvent(event);
@@ -943,37 +984,37 @@
         // 获取表格中的所有数据
         const rows = document.querySelectorAll('.result-table tbody tr');
         if (rows.length === 0) return;
-        
+
         // 创建CSV内容
         let csvContent = "类别,置信度,坐标(x1，y1，x2，y2)\n";
-        
+
         rows.forEach(row => {
             const className = row.querySelector('.class-name').textContent.trim();
             const confidence = row.querySelector('.confidence-value').textContent.trim();
             const coordinates = row.querySelector('.coordinates-cell').textContent.trim();
-            
+
             // 添加到CSV (确保内容中的逗号被正确处理)
             csvContent += `"${className}",${confidence},"${coordinates}"\n`;
         });
-        
+
         // 创建下载链接
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        
+
         // 设置当前日期时间作为文件名的一部分
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        
+
         link.setAttribute('href', url);
         link.setAttribute('download', `detection-results-${timestamp}.csv`);
         link.style.visibility = 'hidden';
-        
+
         // 添加到DOM，触发下载，然后移除
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // 显示成功提示
         alert('检测结果已成功导出为CSV文件');
     }

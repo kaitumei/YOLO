@@ -28,7 +28,8 @@ CONFIG = {
     'device': DEFAULT_DEVICE,
     'conf_threshold': 0.4,
     'use_chinese': True,
-    'draw_boxes': True  # 确保绘制边界框开启
+    'draw_boxes': True,  # 确保绘制边界框开启
+    'use_class_color': True  # 使用类别颜色（True）或车辆实际颜色（False）
 }
 
 # 全局检测器实例
