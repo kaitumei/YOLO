@@ -150,6 +150,13 @@ def map():
     return render_template('front/map.html')
 
 
+@bp.route('/guide')
+@login_required
+def guide():
+    """用户指南页面"""
+    return render_template('front/guide.html')
+
+
 # ---------------------------------------------------------------------------------------------------------- #
 # 验证码相关
 # ---------------------------------------------------------------------------------------------------------- #
@@ -180,8 +187,8 @@ def mail_captcha():
 
         # 发送邮件
         current_app.logger.info(f"开始发送邮件到 {email}")
-        subject = "【慧眼通途】验证码"
-        body = f"【慧眼通途】您的验证码是：{captcha}，验证码有效期为5分钟，请勿告诉他人"
+        subject = "【HorizonSafe 界安 】验证码"
+        body = f"【HorizonSafe 界安 】您的验证码是：{captcha}，验证码有效期为5分钟，请勿告诉他人"
         
         # 使用Celery发送邮件
         from src.utils.bbs_celery import send_mail

@@ -525,21 +525,72 @@ class Detector:
 
 def get_detector(model_path, device='cpu', conf_threshold=0.4, classes_file=None):
     """
-    创建并返回检测器实例的便捷函数
+    获取预加载的检测器实例
     
     参数:
-        model_path: 模型路径
-        device: 运行设备
-        conf_threshold: 置信度阈值
+        model_path: YOLO模型路径
+        device: 运行设备，'cuda'或'cpu'
+        conf_threshold: 最小置信度
         classes_file: 类别文件路径
         
     返回:
-        Detector实例
+        detector: 检测器实例
     """
-    return Detector(
-        model_path=model_path, 
-        device=device, 
-        conf_threshold=conf_threshold,
-        classes_file=classes_file
-    )
+    try:
+        detector = Detector(
+            model_path=model_path,
+            device=device,
+            conf_threshold=conf_threshold,
+            classes_file=classes_file
+        )
+        return detector
+    except Exception as e:
+        print(f"加载检测器失败: {e}")
+        return None
+
+def get_zhlkv3_detector(model_path=None, device='cpu', conf_threshold=0.4, classes_file=None):
+    """
+    获取预加载的zhlkv3.onnx模型检测器实例
+    
+    参数:
+        model_path: zhlkv3.onnx模型路径，如果为None则使用默认路径
+        device: 运行设备，'cuda'或'cpu'
+        conf_threshold: 最小置信度
+        classes_file: 类别文件路径
+        
+    返回:
+        detector: 检测器实例
+    """
+    if model_path is None:
+        # 尝试在几个常见位置查找模型
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "zhlkv3.onnx"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "../models/zhlkv3.onnx"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../models/zhlkv3.onnx"),
+            "models/zhlkv3.onnx",
+            "./models/zhlkv3.onnx"
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                model_path = path
+                print(f"找到zhlkv3.onnx模型: {model_path}")
+                break
+                
+        if model_path is None:
+            raise FileNotFoundError("找不到zhlkv3.onnx模型文件，请指定正确的路径")
+    
+    try:
+        detector = Detector(
+            model_path=model_path,
+            device=device,
+            conf_threshold=conf_threshold,
+            classes_file=classes_file
+        )
+        if not detector.is_onnx:
+            print("警告: 提供的模型不是ONNX格式")
+        return detector
+    except Exception as e:
+        print(f"加载zhlkv3.onnx检测器失败: {e}")
+        raise
         

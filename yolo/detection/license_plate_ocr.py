@@ -197,15 +197,29 @@ class LicensePlateOCR:
             (plate_text, confidence): 车牌文本和置信度
         """
         if not self.is_available():
-            return None, 0.0
+            return "未知", 0.0
             
         try:
             # 提取车牌区域
             x1, y1, x2, y2 = map(int, box)
+            
+            # 边界检查
+            if x1 < 0 or y1 < 0 or x2 <= x1 or y2 <= y1:
+                return "无效边界", 0.0
+                
+            # 防止越界
+            h, w = image.shape[:2]
+            x1, y1 = max(0, x1), max(0, y1)
+            x2, y2 = min(w, x2), min(h, y2)
+            
+            # 检查裁剪区域是否有效
+            if x2 <= x1 or y2 <= y1 or (x2-x1) < 10 or (y2-y1) < 5:
+                return "区域过小", 0.0
+                
             plate_img = image[y1:y2, x1:x2]
             
-            if plate_img.size == 0:
-                return None, 0.0
+            if plate_img is None or plate_img.size == 0:
+                return "无效图像", 0.0
                 
             # 尝试多种预处理方法以提高识别率
             result = None
@@ -216,28 +230,69 @@ class LicensePlateOCR:
             ocr_result = self.ocr_engine.ocr(plate_img, cls=True)
             
             # 处理OCR结果
-            if ocr_result and len(ocr_result) > 0 and len(ocr_result[0]) > 0:
-                for line in ocr_result[0]:
-                    if isinstance(line, list) and len(line) >= 2 and isinstance(line[1], tuple):
-                        text, confidence = line[1]
+            if ocr_result is not None and len(ocr_result) > 0:
+                for idx, line_result in enumerate(ocr_result):
+                    # 检查结果是否为空
+                    if line_result is None or len(line_result) == 0:
+                        continue
+                        
+                    for line in line_result:
+                        # 确保行数据格式正确
+                        if not isinstance(line, list) or len(line) < 2:
+                            continue
+                            
+                        # 确保结果包含文本和置信度
+                        text_conf = line[1]
+                        if not isinstance(text_conf, tuple) or len(text_conf) < 2:
+                            continue
+                            
+                        text, confidence = text_conf
+                        
+                        # 验证文本和置信度
+                        if not text or not isinstance(confidence, (int, float)):
+                            continue
+                            
+                        # 更新最佳结果
                         if confidence > best_confidence and len(text) >= 4:
                             best_text = text
                             best_confidence = confidence
             
             # 如果原始图像识别失败，尝试增强处理
             if best_confidence < min_confidence:
-                # 增强对比度
-                enhanced_img = cv2.convertScaleAbs(plate_img, alpha=1.5, beta=0)
-                ocr_result = self.ocr_engine.ocr(enhanced_img, cls=True)
-                
-                # 处理OCR结果
-                if ocr_result and len(ocr_result) > 0 and len(ocr_result[0]) > 0:
-                    for line in ocr_result[0]:
-                        if isinstance(line, list) and len(line) >= 2 and isinstance(line[1], tuple):
-                            text, confidence = line[1]
-                            if confidence > best_confidence and len(text) >= 4:
-                                best_text = text
-                                best_confidence = confidence
+                try:
+                    # 增强对比度
+                    enhanced_img = cv2.convertScaleAbs(plate_img, alpha=1.5, beta=0)
+                    ocr_result = self.ocr_engine.ocr(enhanced_img, cls=True)
+                    
+                    # 处理OCR结果
+                    if ocr_result is not None and len(ocr_result) > 0:
+                        for idx, line_result in enumerate(ocr_result):
+                            # 检查结果是否为空
+                            if line_result is None or len(line_result) == 0:
+                                continue
+                                
+                            for line in line_result:
+                                # 确保行数据格式正确
+                                if not isinstance(line, list) or len(line) < 2:
+                                    continue
+                                    
+                                # 确保结果包含文本和置信度
+                                text_conf = line[1]
+                                if not isinstance(text_conf, tuple) or len(text_conf) < 2:
+                                    continue
+                                    
+                                text, confidence = text_conf
+                                
+                                # 验证文本和置信度
+                                if not text or not isinstance(confidence, (int, float)):
+                                    continue
+                                    
+                                # 更新最佳结果
+                                if confidence > best_confidence and len(text) >= 4:
+                                    best_text = text
+                                    best_confidence = confidence
+                except Exception as enhance_err:
+                    print(f"图像增强处理失败: {enhance_err}")
             
             # 处理最终结果
             if best_text and best_confidence >= min_confidence:
@@ -245,13 +300,13 @@ class LicensePlateOCR:
                 fixed_text = fix_chinese_plate_text(best_text)
                 return fixed_text, float(best_confidence)
                 
-            return None, 0.0
+            return "未识别", 0.0
             
         except Exception as e:
             print(f"车牌识别失败: {e}")
-            return None, 0.0
+            return "识别错误", 0.0
 
-def get_license_plate_ocr(use_gpu=False):
+def get_license_plate_ocr(use_gpu=None):
     """
     创建并返回车牌OCR识别器实例
     
@@ -261,4 +316,9 @@ def get_license_plate_ocr(use_gpu=False):
     返回:
         LicensePlateOCR: OCR识别器实例
     """
+    # 如果未指定use_gpu，则根据全局设置决定是否使用GPU
+    if use_gpu is None:
+        import torch
+        use_gpu = torch.cuda.is_available()
+        
     return LicensePlateOCR(use_gpu=use_gpu) 

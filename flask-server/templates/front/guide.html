@@ -1,0 +1,375 @@
+{%  extends 'common/front_base.html' %}
+
+{% block title %}【HorizonSafe 界安】- 用户指南{% endblock %}
+
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='front/css/guide.css') }}">
+{% endblock %}
+
+{% block content  %}
+<div class="guide-container">
+    <div class="guide-header">
+        <h1 class="guide-title">用户指南中心</h1>
+        <p class="guide-subtitle">欢迎使用界安智能视觉分析平台，本指南将帮助您了解系统功能和使用方法，让您能够高效使用平台的各项功能。</p>
+    </div>
+
+    <div class="guide-toc">
+        <h2 class="guide-toc-title">快速导航</h2>
+        <ul class="toc-list">
+            <li class="toc-item"><a href="#overview">系统概述</a></li>
+            <li class="toc-item"><a href="#getting-started">快速入门</a></li>
+            <li class="toc-item"><a href="#image-detection">图片检测</a></li>
+            <li class="toc-item"><a href="#video-detection">视频检测</a></li>
+            <li class="toc-item"><a href="#real-time">实时监控</a></li>
+            <li class="toc-item"><a href="#map-service">地图服务</a></li>
+            <li class="toc-item"><a href="#faq">常见问题</a></li>
+            <li class="toc-item"><a href="#support">技术支持</a></li>
+        </ul>
+    </div>
+
+    <div class="guide-sections">
+        <div class="guide-section">
+            <div class="section-icon">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+            </div>
+            <h3 class="section-title">平台总览</h3>
+            <p class="section-description">界安智能视觉分析平台提供全面的视觉分析功能，助力安全监控与智能识别。</p>
+            <div class="guide-feature">
+                <span class="feature-check">✓</span>
+                <span>基于YOLOV11的高精度识别</span>
+            </div>
+            <div class="guide-feature">
+                <span class="feature-check">✓</span>
+                <span>实时安全预警与异常检测</span>
+            </div>
+            <div class="guide-feature">
+                <span class="feature-check">✓</span>
+                <span>多种数据可视化与分析报告</span>
+            </div>
+        </div>
+
+        <div class="guide-section">
+            <div class="section-icon">
+                <svg viewBox="0 0 24 24"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v10c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V5c0-1.1-.9-2-2-2zm-4.86 8.86l-3 3.87L9 13.14 6 17h12l-3.86-5.14z"/></svg>
+            </div>
+            <h3 class="section-title">图像与视频检测</h3>
+            <p class="section-description">支持多种格式的图像与视频分析，提供精准的物体识别与分类。</p>
+            <ul class="section-list">
+                <li>支持JPG/PNG格式图像分析</li>
+                <li>支持H264/MP4格式视频分析</li>
+                <li>生成详细分析报告与标注</li>
+                <li>异常检测与安全预警</li>
+            </ul>
+        </div>
+
+        <div class="guide-section">
+            <div class="section-icon">
+                <svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+            </div>
+            <h3 class="section-title">实时监控</h3>
+            <p class="section-description">提供低延迟的实时视频流分析，适用于安防监控与场景感知。</p>
+            <ul class="section-list">
+                <li>支持RTSP/ONVIF协议接入</li>
+                <li>多摄像头并行处理</li>
+                <li>实时异常行为识别</li>
+                <li>事件记录与回放功能</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="overview">
+        <h2 class="content-title">系统概述</h2>
+        <div class="content-box">
+            <p>界安智能视觉分析平台是一套集图像识别、视频分析、实时监控于一体的综合性视觉智能系统。平台基于先进的深度学习算法，提供高精度的目标检测、行为识别和异常事件预警功能。</p>
+            
+            <p>平台主要组件包括：</p>
+            <ul>
+                <li><strong>图片检测模块</strong> - 支持上传图片进行物体识别和分类</li>
+                <li><strong>视频检测模块</strong> - 提供视频文件的逐帧分析和事件定位</li>
+                <li><strong>实时监控模块</strong> - 连接摄像头实时分析视频流并预警异常</li>
+                <li><strong>地图服务</strong> - 提供地理位置可视化和空间分析功能</li>
+                <li><strong>数据管理</strong> - 存储和管理历史检测记录和分析报告</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="getting-started">
+        <h2 class="content-title">快速入门</h2>
+        <div class="content-box">
+            <div class="step-guide">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4 class="step-title">账户注册与登录</h4>
+                    <p class="step-description">访问登录页面，输入账号密码登录系统。新用户可以通过邮箱或手机号进行注册，完成个人信息填写后即可使用平台功能。</p>
+                </div>
+            </div>
+            
+            <div class="step-guide">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4 class="step-title">熟悉控制面板</h4>
+                    <p class="step-description">登录后进入系统仪表盘，您可以看到系统状态、功能导航和数据统计。左侧导航栏提供所有功能模块的快速访问。</p>
+                </div>
+            </div>
+            
+            <div class="step-guide">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4 class="step-title">选择功能模块</h4>
+                    <p class="step-description">根据需求选择使用图片检测、视频检测或实时监控等功能。每个模块页面都有详细的操作指引。</p>
+                </div>
+            </div>
+            
+            <div class="step-guide">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4 class="step-title">查看分析结果</h4>
+                    <p class="step-description">系统会对上传的内容进行智能分析，并以可视化方式展示结果。您可以下载分析报告或查看历史记录。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="image-detection">
+        <h2 class="content-title">图片检测</h2>
+        <div class="content-box">
+            <p>图片检测功能允许用户上传图像文件，系统会自动识别图像中的物体并进行分类标注。</p>
+            
+            <h4>使用步骤：</h4>
+            <ol>
+                <li>进入图片检测页面</li>
+                <li>选择图片上传方式（本地上传或URL导入）</li>
+                <li>上传图片文件（支持JPG、PNG等格式，最大50MB）</li>
+                <li>等待系统分析（通常只需几秒钟）</li>
+                <li>查看分析结果，包括检测到的物体类型、位置和置信度</li>
+                <li>选择下载分析结果或继续上传新图片</li>
+            </ol>
+            
+            <p><strong>提示：</strong> 图片质量会影响识别精度，建议使用清晰度较高的图片以获得最佳结果。</p>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="video-detection">
+        <h2 class="content-title">视频检测</h2>
+        <div class="content-box">
+            <p>视频检测模块支持对上传的视频文件进行智能分析，可以检测整个视频中出现的物体和行为，并生成时间轴标记关键事件。</p>
+            
+            <h4>使用步骤：</h4>
+            <ol>
+                <li>进入视频检测页面</li>
+                <li>选择并上传视频文件（支持MP4、AVI等格式）</li>
+                <li>设置分析参数（如优先检测的物体类型、敏感度等）</li>
+                <li>启动分析（处理时间取决于视频长度）</li>
+                <li>查看分析结果，包括视频帧标注和事件时间轴</li>
+                <li>下载分析报告或查看历史记录</li>
+            </ol>
+            
+            <p><strong>注意：</strong> 视频处理较为耗时，建议上传长度适中的视频文件，或选择关键片段进行分析。</p>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="real-time">
+        <h2 class="content-title">实时监控</h2>
+        <div class="content-box">
+            <p>实时监控功能支持连接网络摄像头，对视频流进行实时分析，当检测到异常情况时会触发预警。</p>
+            
+            <h4>使用步骤：</h4>
+            <ol>
+                <li>进入实时监控页面</li>
+                <li>添加摄像头（支持RTSP、ONVIF协议）</li>
+                <li>配置摄像头参数（如地址、端口、用户凭证等）</li>
+                <li>设置监控规则（如需检测的目标类型、预警条件等）</li>
+                <li>启动监控，查看实时视频流和分析结果</li>
+                <li>查看预警信息和历史记录</li>
+            </ol>
+            
+            <p><strong>注意：</strong> 实时监控功能需要稳定的网络连接，建议使用有线网络或信号良好的Wi-Fi环境。</p>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="map-service">
+        <h2 class="content-title">地图服务</h2>
+        <div class="content-box">
+            <p>地图服务提供地理位置可视化功能，可以在地图上标记摄像头位置、查看区域覆盖情况，并支持空间数据分析。</p>
+            
+            <h4>主要功能：</h4>
+            <ul>
+                <li>设备位置标记与管理</li>
+                <li>区域热力图显示</li>
+                <li>路径规划与导航</li>
+                <li>地点搜索与收藏</li>
+                <li>地图数据导出</li>
+            </ul>
+            
+            <p><strong>提示：</strong> 使用地图服务时，可以通过右侧面板进行设置和数据查询。</p>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="faq">
+        <h2 class="content-title">常见问题</h2>
+        <div class="content-box">
+            <div class="faq-item">
+                <h4 class="faq-question">系统支持哪些图片和视频格式？</h4>
+                <p class="faq-answer">系统支持常见的图片格式如JPG、PNG、BMP等，视频格式支持MP4、AVI、MPEG等。图片大小限制为50MB，视频大小限制为500MB。</p>
+            </div>
+            
+            <div class="faq-item">
+                <h4 class="faq-question">实时监控功能需要什么网络条件？</h4>
+                <p class="faq-answer">实时监控功能建议使用上行带宽不低于2Mbps的网络连接，延迟低于100ms，以确保视频流的稳定传输和分析。</p>
+            </div>
+            
+            <div class="faq-item">
+                <h4 class="faq-question">如何提高识别的准确率？</h4>
+                <p class="faq-answer">提高图像质量、确保光线充足、减少遮挡和模糊是提高识别准确率的关键。此外，针对特定场景可以调整系统的识别参数以获得更好的结果。</p>
+            </div>
+            
+            <div class="faq-item">
+                <h4 class="faq-question">系统可以离线使用吗？</h4>
+                <p class="faq-answer">目前系统主要设计为在线服务，需要网络连接。但部分功能如已下载的历史报告可以在离线状态下查看。</p>
+            </div>
+            
+            <div class="faq-item">
+                <h4 class="faq-question">如何导出分析结果？</h4>
+                <p class="faq-answer">在分析结果页面，点击右上角的"导出"按钮，可以选择导出为PDF、Excel或图像格式。历史记录中也可以重新下载之前的分析结果。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="guide-content-section" id="support">
+        <h2 class="content-title">技术支持</h2>
+        <div class="content-box">
+            <p>如果您在使用过程中遇到任何问题，可以通过以下方式获取帮助：</p>
+            
+            <div class="support-options">
+                <div class="support-option">
+                    <div class="support-icon">📧</div>
+                    <h4 class="support-title">邮件支持</h4>
+                    <p class="support-description">发送详细问题描述至技术支持邮箱，我们会在1-2个工作日内回复。
+                        <br>
+                        邮箱：<a href="mailto:2252610441@qq.com">2252610441@qq.com</a>
+                    </p>
+                    <a href="mailto:2252610441@qq.com" class="support-link">发送邮件</a>
+                </div>
+                
+                <!-- <div class="support-option">
+                    <div class="support-icon">💬</div>
+                    <h4 class="support-title">在线客服</h4>
+                    <p class="support-description">工作时间内可通过系统内的聊天窗口获得实时帮助。</p>
+                    <a href="#" class="support-link">开始聊天</a>
+                </div> -->
+                
+                <div class="support-option">
+                    <div class="support-icon">📚</div>
+                    <h4 class="support-title">知识库</h4>
+                    <p class="support-description">查阅详细的文档、教程和常见问题解答。</p>
+                    <a href="#" class="support-link">浏览文档</a>
+                </div>
+            </div>
+            
+            <p style="margin-top: 2rem; text-align: center; color: #7f8c8d;">工作时间：周一至周五 9:00-18:00（节假日除外）</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 平滑滚动到锚点
+    document.querySelectorAll('.toc-item a').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            
+            if (targetElement) {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 20,
+                    behavior: 'smooth'
+                });
+                
+                // 添加高亮效果
+                document.querySelectorAll('.guide-content-section').forEach(section => {
+                    section.classList.remove('highlight-section');
+                });
+                
+                // 添加淡入效果
+                targetElement.classList.add('highlight-section');
+                
+                // 更新URL，但不滚动页面
+                history.pushState(null, null, targetId);
+            }
+        });
+    });
+    
+    // 添加滚动监听，为在视口中的部分添加动画
+    const sections = document.querySelectorAll('.guide-section, .content-box, .step-guide, .faq-item, .support-option');
+    
+    // 创建Intersection Observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                
+                // 为FAQ项添加延迟显示效果
+                if (entry.target.classList.contains('faq-item')) {
+                    const index = Array.from(entry.target.parentNode.children).indexOf(entry.target);
+                    entry.target.style.transitionDelay = `${index * 0.1}s`;
+                }
+                
+                // 为导航列表项添加延迟
+                if (entry.target.classList.contains('step-guide')) {
+                    const index = Array.from(entry.target.parentNode.children).indexOf(entry.target);
+                    if (index > 0) { // 跳过非step-guide元素
+                        entry.target.style.transitionDelay = `${(index-1) * 0.15}s`;
+                    }
+                }
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -100px 0px'
+    });
+    
+    // 监听所有相关元素
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+    
+    // 添加点击高亮效果
+    document.querySelectorAll('.guide-section, .faq-item').forEach(item => {
+        item.addEventListener('click', function() {
+            this.classList.add('active-highlight');
+            setTimeout(() => {
+                this.classList.remove('active-highlight');
+            }, 500);
+        });
+    });
+    
+    // 检查URL中是否有锚点，如果有则滚动到对应位置
+    if (window.location.hash) {
+        const targetElement = document.querySelector(window.location.hash);
+        if (targetElement) {
+            setTimeout(() => {
+                window.scrollTo({
+                    top: targetElement.offsetTop - 20,
+                    behavior: 'smooth'
+                });
+                targetElement.classList.add('highlight-section');
+            }, 500); // 延迟执行以确保页面完全加载
+        }
+    }
+    
+    // 添加支持选项的悬停效果
+    document.querySelectorAll('.support-link').forEach(link => {
+        link.addEventListener('mouseenter', function() {
+            this.closest('.support-option').classList.add('support-hover');
+        });
+        
+        link.addEventListener('mouseleave', function() {
+            this.closest('.support-option').classList.remove('support-hover');
+        });
+    });
+});
+</script>
+{% endblock %} 

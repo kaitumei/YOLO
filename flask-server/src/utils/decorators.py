@@ -1,3 +1,5 @@
+# 权限限制
+
 from functools import wraps
 from flask import g
 from flask import redirect

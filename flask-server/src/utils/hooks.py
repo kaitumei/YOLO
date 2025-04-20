@@ -1,4 +1,4 @@
-# 这段代码用于在 Flask 应用程序中处理一些常见的错误情况，例如 404 Not Found、500 Internal Server Error 和 401 Unauthorized。下面是加上中文注释后的代码：
+# 错误情况
 from flask import session, g, url_for, request, current_app
 import time
 from ..blueprints.front.models import UserModel

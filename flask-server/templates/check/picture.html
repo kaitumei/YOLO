@@ -1,310 +1,9 @@
 {% extends "common/front_base.html" %}
 
-{% block title %}图片检测{% endblock %}
+{% block title %}【HorizonSafe 界安】 - 图片检测{% endblock %}
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='check/css/picture.css') }}">
-<style>
-    .image-info {
-        display: flex;
-        align-items: center;
-        padding: 8px 12px;
-        font-size: 0.9rem;
-        color: #555;
-        background-color: rgba(0, 0, 0, 0.03);
-        border-top: 1px solid rgba(0, 0, 0, 0.05);
-    }
-
-    .image-info i {
-        margin-right: 8px;
-        color: var(--primary-500);
-    }
-
-    .image-info span {
-        text-overflow: ellipsis;
-        overflow: hidden;
-        white-space: nowrap;
-    }
-
-    /* 错误消息样式 */
-    .error-message {
-        background-color: #ffebee;
-        border-left: 4px solid #f44336;
-        padding: 12px;
-        margin: 15px 0;
-        border-radius: 4px;
-    }
-
-    .error-message-content {
-        display: flex;
-        align-items: center;
-    }
-
-    .error-icon {
-        color: #f44336;
-        margin-right: 10px;
-        font-size: 20px;
-    }
-
-    /* 图片加载优化 */
-    .image-container {
-        position: relative;
-        overflow: hidden;
-        min-height: 200px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-    }
-
-    .image-container img {
-        opacity: 0;
-        transition: opacity 0.5s ease;
-    }
-
-    .image-container img.loaded {
-        opacity: 1;
-    }
-
-    .image-container .image-placeholder {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background-color: #f8f9fa;
-        z-index: 1;
-        transition: opacity 0.3s ease;
-    }
-
-    .image-container .image-placeholder .spinner {
-        width: 40px;
-        height: 40px;
-        margin-bottom: 10px;
-        border: 3px solid rgba(0, 123, 255, 0.2);
-        border-top-color: #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* 改进的加载覆盖层 */
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(255, 255, 255, 0.9);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    .loading-overlay.visible {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    .loading-overlay .spinner {
-        width: 60px;
-        height: 60px;
-        border: 4px solid rgba(0, 123, 255, 0.2);
-        border-top-color: #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 15px;
-    }
-
-    .loading-overlay .loading-text {
-        font-size: 1rem;
-        color: #333;
-        margin-top: 10px;
-        font-weight: 500;
-    }
-
-    .loading-overlay .progress-container {
-        width: 200px;
-        height: 4px;
-        background-color: #e9ecef;
-        border-radius: 4px;
-        margin-top: 15px;
-        overflow: hidden;
-    }
-
-    .loading-overlay .progress-bar {
-        height: 100%;
-        width: 0%;
-        background-color: #007bff;
-        border-radius: 4px;
-        transition: width 0.4s ease;
-    }
-
-    /* 骨架屏效果 */
-    .skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: skeleton-loading 1.5s infinite;
-    }
-
-    @keyframes skeleton-loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-    }
-
-    .skeleton-text {
-        height: 14px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-    }
-
-    .skeleton-header {
-        height: 24px;
-        width: 40%;
-        margin-bottom: 15px;
-        border-radius: 4px;
-    }
-
-    /* 文件预览样式 */
-    .file-preview {
-        margin-top: 10px;
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-    }
-
-    .preview-image {
-        width: 100%;
-        height: 120px;
-        background-size: contain;
-        background-position: center;
-        background-repeat: no-repeat;
-        border-radius: 4px;
-        margin-bottom: 8px;
-    }
-
-    .preview-info {
-        display: flex;
-        flex-direction: column;
-        padding: 8px;
-        background-color: rgba(0, 0, 0, 0.03);
-        border-radius: 4px;
-    }
-
-    .file-name {
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #333;
-        margin-bottom: 4px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .file-size {
-        font-size: 0.8rem;
-        color: #666;
-    }
-
-    /* 图片查看器优化 */
-    .image-viewer {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.9);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.3s ease;
-    }
-
-    .image-viewer.visible {
-        opacity: 1;
-        visibility: visible;
-    }
-
-    .image-viewer.loading::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 50px;
-        height: 50px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
-        border-top-color: #fff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    .viewer-image {
-        max-width: 90%;
-        max-height: 90%;
-        transition: transform 0.3s ease;
-    }
-
-    /* 表格行加载动画 */
-    .result-table tbody tr {
-        opacity: 0;
-        transform: translateY(10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-    }
-
-    .result-table tbody tr.show {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    .highlight-row {
-        background-color: rgba(0, 123, 255, 0.1);
-        transition: background-color 0.3s ease;
-    }
-
-    /* 新增下载按钮样式 */
-    .download-results-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #28a745;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 8px 16px;
-        font-size: 14px;
-        cursor: pointer;
-        margin-left: 10px;
-        transition: background-color 0.2s;
-    }
-
-    .download-results-btn:hover {
-        background-color: #218838;
-    }
-
-    .download-results-btn svg {
-        margin-right: 8px;
-    }
-
-    .results-actions {
-        display: flex;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -400,14 +99,49 @@
 
         <!-- 添加导出按钮 -->
         <div class="results-actions">
-            <button type="button" class="download-results-btn" onclick="downloadDetectionResults()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                导出检测数据(CSV)
-            </button>
+            <div class="download-dropdown" id="downloadDropdown">
+                <button type="button" class="download-results-btn" id="downloadBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    导出检测数据
+                </button>
+                <div class="download-dropdown-content" id="downloadOptions">
+                    <a href="#" onclick="downloadDetectionResults('csv'); return false;">
+                        <span class="download-format-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <path d="M10 12 a2 2 0 0 1 4 0v4a2 2 0 0 1-4 0v-4"></path>
+                            </svg>
+                        </span>
+                        CSV格式
+                    </a>
+                    <a href="#" onclick="downloadDetectionResults('excel'); return false;">
+                        <span class="download-format-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <rect x="8" y="12" width="8" height="6"></rect>
+                            </svg>
+                        </span>
+                        Excel格式
+                    </a>
+                    <a href="#" onclick="downloadDetectionResults('txt'); return false;">
+                        <span class="download-format-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="8" y1="13" x2="16" y2="13"></line>
+                                <line x1="8" y1="17" x2="16" y2="17"></line>
+                            </svg>
+                        </span>
+                        TXT格式
+                    </a>
+                </div>
+            </div>
         </div>
 
         <div class="result-table-container">
@@ -489,6 +223,13 @@
         <p class="empty-state-hint">支持JPG、PNG、JPEG等常见图片格式</p>
     </div>
     {% endif %}
+</div>
+
+<!-- 回到顶部按钮 -->
+<div class="back-to-top" id="backToTop" title="回到顶部">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
 </div>
 {% endblock %}
 
@@ -874,6 +615,9 @@
                 element.textContent = formatConfidence(rawConfidence);
             }
         });
+
+        // 初始化下拉菜单交互
+        initializeDropdown();
     });
 
     // 鼠标滚轮控制缩放
@@ -980,34 +724,83 @@
     }
 
     // 添加下载检测结果函数
-    function downloadDetectionResults() {
+    function downloadDetectionResults(format = 'csv') {
         // 获取表格中的所有数据
         const rows = document.querySelectorAll('.result-table tbody tr');
         if (rows.length === 0) return;
 
-        // 创建CSV内容
-        let csvContent = "类别,置信度,坐标(x1，y1，x2，y2)\n";
-
-        rows.forEach(row => {
-            const className = row.querySelector('.class-name').textContent.trim();
-            const confidence = row.querySelector('.confidence-value').textContent.trim();
-            const coordinates = row.querySelector('.coordinates-cell').textContent.trim();
-
-            // 添加到CSV (确保内容中的逗号被正确处理)
-            csvContent += `"${className}",${confidence},"${coordinates}"\n`;
-        });
-
-        // 创建下载链接
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-
         // 设置当前日期时间作为文件名的一部分
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        let fileContent = '';
+        let mimeType = '';
+        let fileExtension = '';
+        let successMessage = '';
+
+        // 根据不同格式生成不同内容
+        switch (format) {
+            case 'csv':
+                // 创建CSV内容
+                fileContent = "类别,置信度,坐标(x1，y1，x2，y2)\n";
+                rows.forEach(row => {
+                    const className = row.querySelector('.class-name').textContent.trim();
+                    const confidence = row.querySelector('.confidence-value').textContent.trim();
+                    const coordinates = row.querySelector('.coordinates-cell').textContent.trim();
+                    // 添加到CSV (确保内容中的逗号被正确处理)
+                    fileContent += `"${className}",${confidence},"${coordinates}"\n`;
+                });
+                mimeType = 'text/csv;charset=utf-8;';
+                fileExtension = 'csv';
+                successMessage = '检测结果已成功导出为CSV文件';
+                break;
+
+            case 'excel':
+                // 创建Excel兼容的CSV内容（Excel可以打开CSV文件）
+                fileContent = "\ufeff类别,置信度,坐标(x1，y1，x2，y2)\n"; // 添加BOM标记以支持中文
+                rows.forEach(row => {
+                    const className = row.querySelector('.class-name').textContent.trim();
+                    const confidence = row.querySelector('.confidence-value').textContent.trim();
+                    const coordinates = row.querySelector('.coordinates-cell').textContent.trim();
+                    // 添加到CSV (确保内容中的逗号被正确处理)
+                    fileContent += `"${className}",${confidence},"${coordinates}"\n`;
+                });
+                mimeType = 'application/vnd.ms-excel;charset=utf-8;';
+                fileExtension = 'xls';
+                successMessage = '检测结果已成功导出为Excel文件';
+                break;
+
+            case 'txt':
+                // 创建TXT内容
+                fileContent = "检测结果报告\n";
+                fileContent += "生成时间: " + now.toLocaleString() + "\n";
+                fileContent += "检测到的目标数量: " + rows.length + "\n\n";
+                fileContent += "详细信息:\n";
+                fileContent += "-".repeat(50) + "\n";
+                
+                rows.forEach((row, index) => {
+                    const className = row.querySelector('.class-name').textContent.trim();
+                    const confidence = row.querySelector('.confidence-value').textContent.trim();
+                    const coordinates = row.querySelector('.coordinates-cell').textContent.trim();
+                    
+                    fileContent += `目标 #${index + 1}\n`;
+                    fileContent += `类别: ${className}\n`;
+                    fileContent += `置信度: ${confidence}\n`;
+                    fileContent += `坐标(x1，y1，x2，y2): ${coordinates}\n`;
+                    fileContent += "-".repeat(50) + "\n";
+                });
+                mimeType = 'text/plain;charset=utf-8;';
+                fileExtension = 'txt';
+                successMessage = '检测结果已成功导出为TXT文件';
+                break;
+        }
+
+        // 创建下载链接
+        const blob = new Blob([fileContent], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
 
         link.setAttribute('href', url);
-        link.setAttribute('download', `detection-results-${timestamp}.csv`);
+        link.setAttribute('download', `detection-results-${timestamp}.${fileExtension}`);
         link.style.visibility = 'hidden';
 
         // 添加到DOM，触发下载，然后移除
@@ -1016,7 +809,60 @@
         document.body.removeChild(link);
 
         // 显示成功提示
-        alert('检测结果已成功导出为CSV文件');
+        alert(successMessage);
     }
+
+    // 初始化下拉菜单功能
+    function initializeDropdown() {
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadOptions = document.getElementById('downloadOptions');
+        
+        if (downloadBtn && downloadOptions) {
+            // 点击按钮时显示/隐藏下拉菜单
+            downloadBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                downloadOptions.classList.toggle('show');
+            });
+            
+            // 点击页面其他位置关闭下拉菜单
+            document.addEventListener('click', function(e) {
+                if (!downloadBtn.contains(e.target) && !downloadOptions.contains(e.target)) {
+                    downloadOptions.classList.remove('show');
+                }
+            });
+            
+            // 为选项添加点击事件，选择后关闭下拉菜单
+            const options = downloadOptions.querySelectorAll('a');
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    downloadOptions.classList.remove('show');
+                });
+            });
+        }
+    }
+
+    // 添加回到顶部功能
+    window.addEventListener('DOMContentLoaded', function() {
+        const backToTopBtn = document.getElementById('backToTop');
+        
+        if (backToTopBtn) {
+            // 滚动时检查是否显示按钮
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 300) {
+                    backToTopBtn.classList.add('visible');
+                } else {
+                    backToTopBtn.classList.remove('visible');
+                }
+            });
+            
+            // 点击按钮回到顶部
+            backToTopBtn.addEventListener('click', function() {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        }
+    });
 </script>
 {% endblock %}

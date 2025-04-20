@@ -1,3 +1,5 @@
+# 防止重复导入
+
 from celery import Celery
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy

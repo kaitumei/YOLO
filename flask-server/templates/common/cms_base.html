@@ -192,6 +192,27 @@
     <script>
         // 强制应用不透明效果，确保侧边栏和导航始终可见
         document.addEventListener('DOMContentLoaded', function() {
+            // 恢复侧边栏状态
+            const sidebar = document.querySelector('.sidebar');
+            const savedState = localStorage.getItem('cmsNavbarState');
+            
+            if (savedState === 'expanded') {
+                sidebar.classList.remove('collapsed');
+            } else {
+                sidebar.classList.add('collapsed');
+            }
+            
+            // 监听侧边栏状态变化并保存
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    setTimeout(function() {
+                        const isCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('cmsNavbarState', isCollapsed ? 'collapsed' : 'expanded');
+                    }, 10);
+                });
+            }
+            
             setTimeout(function() {
                 // 尝试调用testSidebarOpacity函数
                 if (typeof testSidebarOpacity === 'function') {

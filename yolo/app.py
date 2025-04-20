@@ -23,7 +23,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = 'temp_videos'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB
-CORS(app)  # 允许所有跨域请求
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)  # 允许所有跨域请求并支持凭证
 # 初始化Socket
 socketio = FlaskSocketIO(app, cors_allowed_origins="*")
 sio = client_sio.Client(
@@ -38,10 +38,10 @@ sio = client_sio.Client(
 
 # 初始化MQTT模块
 mqtt_client = MQTTModule(
-    client_id="yolo_detection_client",
-    broker="8.138.192.81",
+    client_id="dawdawdw",
+    broker="117.72.120.52",
     port=1883,
-    topic="yolo/detections"
+    topic="alarm/command"
 )
 
 # 修改服务器地址为本地地址
@@ -52,13 +52,38 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 if device == "cuda":
     log_info = lambda message: print(f"[INFO] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
     log_info(f"使用GPU加速：{torch.cuda.get_device_name(0)}")
-    # 预热GPU
+    # 预热GPU并优化内存使用
     torch.cuda.empty_cache()
+    
+    # 设置GPU优化参数
+    torch.backends.cudnn.benchmark = True  # 启用cudnn自动优化
+    torch.backends.cudnn.deterministic = False  # 关闭确定性模式以提高性能
+    torch.backends.cudnn.enabled = True  # 确保cudnn启用
+    
+    # 设置内存分配策略，减少内存碎片
+    if hasattr(torch.cuda, 'memory_stats'):
+        log_info("启用高级内存优化")
+        torch.cuda.set_per_process_memory_fraction(0.8)  # 限制使用80%的GPU内存，避免OOM
+        if hasattr(torch.cuda, 'empty_cache'):
+            # 定期清理GPU内存的函数
+            def clean_gpu_memory():
+                torch.cuda.empty_cache()
+                log_info("GPU内存已清理")
+            
+            # 创建定时清理GPU内存的线程
+            import threading
+            gpu_cleaner = threading.Timer(300.0, clean_gpu_memory)  # 每5分钟清理一次
+            gpu_cleaner.daemon = True
+            gpu_cleaner.start()
+    
+    log_info("已启用CUDA优化设置，提高GPU性能")
 else:
     log_info = lambda message: print(f"[INFO] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
     log_info("无GPU可用，使用CPU模式")
 
 # 初始化检测器
+# 统一使用zhlkv3.onnx模型，并利用GPU加速
+log_info("使用统一的zhlkv3.onnx模型初始化检测器")
 detector = detection.get_detector("models/zhlkv3.onnx", device=device)
 
 # 添加专用检测器
@@ -72,7 +97,7 @@ processing_lock = threading.Lock()
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
 
 # 添加帧处理控制变量
-frame_skip = 2  # 每隔几帧处理一次
+frame_skip = 3  # 每3帧处理1帧，提高帧率
 frame_counter = 0  # 帧计数器
 
 # 添加WebSocket连接优化
@@ -90,9 +115,50 @@ sio = client_sio.Client(
 frame_buffer = []
 MAX_BUFFER_SIZE = 5  # 最大缓冲区大小
 
+# 添加视频质量设置变量，用于动态调整质量
+video_quality = {
+    'width': 640,  # 默认使用较低分辨率提高帧率
+    'height': 360,
+    'quality': 75  # 默认使用较低的JPEG质量以减少传输数据量
+}
+
+# 修改batch_size设置
+batch_processing = {
+    'enabled': True,
+    'max_size': 4,  # 最大批处理大小
+    'buffer': []    # 批处理缓冲区
+}
+
+# 修改推理设置，只检测重要目标
+detection_settings = {
+    'detect_vehicles': True,  # 保持车辆检测
+    'detect_plates': False,   # 默认关闭车牌检测以提高性能
+    'detect_accidents': True, # 保持事故检测
+    'detect_violations': False, # 默认关闭违章检测以提高性能
+    'conf_threshold': 0.4     # 提高置信度阈值以减少处理目标数量
+}
+
 # 日志函数
 def log_info(message): print(f"[INFO] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
 def log_error(message): print(f"[ERROR] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
+
+# 处理特定类型检测结果的MQTT发布
+def publish_special_detection(detections):
+    """向MQTT发布特定类型的检测结果"""
+    if not mqtt_client.is_connected() or mqtt_client.is_paused():
+        return
+        
+    for detection in detections:
+        class_name = detection.get("class_name", "")
+        detection_type = detection.get("type", "")
+        
+        # 只检测accident（事故）
+        if "accident" in class_name.lower() or "accident" in detection_type.lower():
+            try:
+                mqtt_client.publish_command("accident")
+                log_info("MQTT已发送事故警报")
+            except Exception as e:
+                log_error(f"MQTT发送事故警报失败: {str(e)}")
 
 # 添加全局错误处理
 @app.errorhandler(Exception)
@@ -147,9 +213,15 @@ def process_stream(stream_url):
     max_reconnects = 10
     reconnect_delay = 3
     error_count = 0  # 错误计数器
+    frame_counter = 0  # 帧计数器重置
     
-    # 预处理参数
-    frame_size = (640, 480)  # 设置处理帧的大小
+    # 添加FPS计算相关变量
+    fps_start_time = time.time()
+    fps_frame_count = 0
+    fps_value = 0
+    
+    # 添加帧缓存，避免渲染上一帧
+    prev_frame = None
     
     while True:
         try:
@@ -171,8 +243,13 @@ def process_stream(stream_url):
                     error_count = 0  # 连接成功，重置错误计数
                     log_info("视频流连接成功")
                     
-                    # 设置视频流属性
-                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 减小缓冲区大小，获取最新帧
+                    # 优化视频流属性
+                    cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)  # 减小缓冲区大小以减少延迟
+                    # 设置较低的分辨率以提高帧率
+                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, video_quality['width'])
+                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, video_quality['height'])
+                    # 尝试设置较高的摄像头FPS（如果摄像头支持）
+                    cap.set(cv2.CAP_PROP_FPS, 30)
 
             success, frame = cap.read()
             if not success:
@@ -183,43 +260,64 @@ def process_stream(stream_url):
                 time.sleep(reconnect_delay)
                 continue
 
-            # 帧跳过逻辑，减少处理频率
-            global frame_counter
+            # 帧跳过逻辑，提高处理效率
             frame_counter += 1
+            
+            # 计算实际FPS
+            fps_frame_count += 1
+            current_time = time.time()
+            elapsed = current_time - fps_start_time
+            
+            if elapsed >= 2.0:  # 每2秒更新一次FPS
+                fps_value = fps_frame_count / elapsed
+                # log_info(f"当前视频处理帧率: {fps_value:.2f} FPS")  # 注释掉FPS日志输出
+                fps_frame_count = 0
+                fps_start_time = current_time
+            
+            # 根据设置的帧跳过率处理帧
             if frame_counter % frame_skip != 0:
                 continue
 
-            # 预处理图像以提高检测质量
-            # 1. 缩放图像到合适大小
-            frame = cv2.resize(frame, frame_size, interpolation=cv2.INTER_AREA)
+            # 计算当前需要使用的帧尺寸，根据当前质量设置调整
+            current_frame_size = (video_quality['width'], video_quality['height'])
             
-            # 2. 增强图像（可选，根据实际效果决定是否启用）
-            # 增强对比度
-            # alpha = 1.2  # 对比度增强因子
-            # beta = 10    # 亮度调整
-            # frame = cv2.convertScaleAbs(frame, alpha=alpha, beta=beta)
+            # 高效预处理图像 - 只缩放到所需大小
+            frame = cv2.resize(frame, current_frame_size, interpolation=cv2.INTER_AREA)
             
-            # 3. 去噪（可选，适合低光环境）
-            # frame = cv2.GaussianBlur(frame, (3, 3), 0)
-
-            # 直接将帧传递给detector进行处理，启用所有检测类型
+            # 检查帧是否与上一帧相同（避免重复发送相同帧）
+            if prev_frame is not None:
+                # 计算帧差异
+                frame_diff = cv2.absdiff(frame, prev_frame)
+                if frame_diff.mean() < 1.0:  # 如果帧几乎没有变化，跳过这一帧
+                    continue
+            
+            # 更新前一帧
+            prev_frame = frame.copy()
+            
+            # 使用优化的检测设置
+            conf_threshold = detection_settings['conf_threshold']
+            
+            # 直接将帧传递给detector进行处理，根据设置启用检测类型
             try:
                 result_image, detections = detector.detect_objects(
                     frame, 
-                    conf_threshold=0.4,
-                    detect_vehicles=True,
-                    detect_plates=True,
-                    detect_accidents=True,
-                    detect_violations=True
+                    conf_threshold=conf_threshold,
+                    detect_vehicles=detection_settings['detect_vehicles'],
+                    detect_plates=detection_settings['detect_plates'],
+                    detect_accidents=detection_settings['detect_accidents'],
+                    detect_violations=detection_settings['detect_violations']
                 )
             except Exception as detect_error:
                 log_error(f"检测处理异常: {str(detect_error)}")
-                time.sleep(1)  # 短暂休眠后继续
+                time.sleep(0.2)  # 减少休眠时间
                 continue
             
-            # 降低JPEG质量以减少数据量
+            # 使用优化的JPEG质量设置
             try:
-                _, buffer = cv2.imencode('.jpg', result_image, [int(cv2.IMWRITE_JPEG_QUALITY), 40])
+                # 使用更高质量设置，降低压缩伪影
+                encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), video_quality['quality'], 
+                                int(cv2.IMWRITE_JPEG_OPTIMIZE), 1]
+                _, buffer = cv2.imencode('.jpg', result_image, encode_params)
                 jpg_base64 = base64.b64encode(buffer).decode('utf-8')
             except Exception as encode_error:
                 log_error(f"图像编码异常: {str(encode_error)}")
@@ -229,7 +327,7 @@ def process_stream(stream_url):
             filtered_detections = []
             for detection in detections:
                 confidence = detection.get("confidence", 0)
-                if confidence >= 0.5:  # 只保留置信度>=0.5的检测结果
+                if confidence >= conf_threshold:  # 使用全局设置的置信度阈值
                     filtered_detections.append({
                         "class": detection["class_name"],
                         "confidence": confidence,
@@ -238,10 +336,18 @@ def process_stream(stream_url):
                         "class_id": detection.get("class_id", 0)
                     })
 
+            # 添加FPS信息到数据中
+            detection_data = {
+                'image': jpg_base64, 
+                'detections': filtered_detections,
+                'fps': round(fps_value, 1),
+                'timestamp': int(time.time() * 1000)  # 添加时间戳防止浏览器缓存
+            }
+
             # 尝试通过Socket.IO发送结果
             if sio.connected:
                 try:
-                    sio.emit('detection_frame', {'image': jpg_base64, 'detections': filtered_detections})
+                    sio.emit('detection_frame', detection_data)
                 except client_sio.exceptions.ConnectionError:
                     log_error("Socket.IO发送失败，连接已断开")
                     # 不中断主循环，继续处理视频
@@ -252,6 +358,8 @@ def process_stream(stream_url):
             if mqtt_client.is_connected() and not mqtt_client.is_paused():
                 try:
                     mqtt_client.publish_detection(filtered_detections, jpg_base64)
+                    # 发布特定类型的检测结果
+                    publish_special_detection(filtered_detections)
                 except Exception as mqtt_error:
                     log_error(f"MQTT发布异常: {str(mqtt_error)}")
                     
@@ -268,6 +376,59 @@ def process_stream(stream_url):
                 cap = None
                 error_count = 0
             time.sleep(reconnect_delay)
+
+# 添加接收质量设置事件处理
+@sio.on('video_quality_updated')
+def handle_quality_update(data):
+    """处理从服务器接收的视频质量更新"""
+    global video_quality, frame_skip
+    try:
+        # 更新视频质量设置
+        if 'quality' in data:
+            quality_map = {
+                'HIGH': {'width': 1280, 'height': 720, 'quality': 85},
+                'MEDIUM': {'width': 854, 'height': 480, 'quality': 80},
+                'LOW': {'width': 640, 'height': 360, 'quality': 70}
+            }
+            
+            if data['quality'] in quality_map:
+                new_settings = quality_map[data['quality']]
+                video_quality.update(new_settings)
+                log_info(f"视频质量已更新为: {data['quality']}, 分辨率: {video_quality['width']}x{video_quality['height']}, JPEG质量: {video_quality['quality']}")
+            else:
+                # 使用接收到的具体数值
+                video_quality.update({
+                    'width': int(data.get('width', video_quality['width'])),
+                    'height': int(data.get('height', video_quality['height'])),
+                    'quality': int(data.get('jpegQuality', 0.9) * 100)  # 转换0-1范围为0-100
+                })
+                log_info(f"视频质量已更新, 分辨率: {video_quality['width']}x{video_quality['height']}, JPEG质量: {video_quality['quality']}")
+        
+        # 更新帧跳过率设置
+        if 'frameSkip' in data:
+            new_frame_skip = int(data.get('frameSkip', 3))
+            if 1 <= new_frame_skip <= 10:  # 限制在合理范围内
+                frame_skip = new_frame_skip
+                log_info(f"跳帧率已更新为: {frame_skip}")
+                
+                # 同时更新检测设置，根据跳帧率优化
+                if frame_skip >= 5:
+                    # 高跳帧率时，使用更高的置信度阈值和更少的检测目标
+                    detection_settings['conf_threshold'] = 0.45
+                    detection_settings['detect_plates'] = False
+                    detection_settings['detect_violations'] = False
+                elif frame_skip >= 3:
+                    # 中等跳帧率，平衡设置
+                    detection_settings['conf_threshold'] = 0.4
+                    detection_settings['detect_plates'] = False
+                    detection_settings['detect_violations'] = False
+                else:
+                    # 低跳帧率，保持更多的检测功能
+                    detection_settings['conf_threshold'] = 0.35
+                    detection_settings['detect_plates'] = True
+                    detection_settings['detect_violations'] = True
+    except Exception as e:
+        log_error(f"更新视频质量设置失败: {str(e)}")
 
 # API端点 - 图像检测 - 使用detection模块
 @app.route('/img_predict', methods=['POST'])
@@ -375,6 +536,8 @@ def img_predict():
         if mqtt_client.is_connected() and not mqtt_client.is_paused():
             try:
                 mqtt_client.publish_detection(detections, result_base64)
+                # 发布特定类型的检测结果
+                publish_special_detection(detections)
             except Exception as mqtt_error:
                 log_error(f"MQTT发布异常: {str(mqtt_error)}")
         
@@ -417,72 +580,33 @@ def video_predict():
         file.save(input_path)
         log_info(f"视频文件已保存: {input_filename}")
 
+        # 记录开始时间用于计算处理用时
+        start_time = time.time()
+
         # 根据检测类型设置参数
         enable_license_plate = detection_type in ['plate', 'integrated', 'general']
         enable_speed = detection_type in ['speed', 'integrated']
         
-        # 安全调用detector的process_video方法并处理返回结果
-        try:
-            result = detector.process_video(
-                input_path, 
-                output_path, 
-                enable_license_plate=enable_license_plate, 
-                enable_speed=enable_speed
-            )
-            
-            # 处理返回值格式兼容性
-            if isinstance(result, tuple) and len(result) >= 2:
-                actual_output_path, processing_results = result
-            elif isinstance(result, str):
-                # 如果只返回路径
-                actual_output_path = result
-                processing_results = []
-            elif isinstance(result, bool):
-                # 如果返回成功/失败状态
-                if result:
-                    actual_output_path = output_path
-                    processing_results = []
-                else:
-                    raise Exception("视频处理失败")
-            else:
-                # 默认情况
-                actual_output_path = output_path
-                processing_results = []
-                
-            # 确保输出路径有效
-            if not actual_output_path or not os.path.exists(actual_output_path):
-                actual_output_path = output_path
-                log_error(f"视频处理返回的输出路径无效，使用默认输出路径: {output_path}")
-                
-            # 确保处理结果是列表
-            if not isinstance(processing_results, list):
-                processing_results = []
-                log_warning("视频处理未返回有效的处理结果列表")
-                
-        except Exception as process_error:
-            log_error(f"调用视频处理失败: {str(process_error)}")
-            # 尝试直接调用视频处理器模块
-            from detection.video_processor import process_video
-            
-            # 直接调用process_video函数
-            log_info("尝试使用备用方法处理视频...")
-            actual_output_path, processing_results = process_video(
-                input_path, 
-                output_path, 
-                detector=detector, 
-                enable_license_plate=enable_license_plate, 
-                enable_speed=enable_speed
-            )
+        # 直接调用detector的process_video方法
+        output_path, processing_results = detector.process_video(
+            input_path, 
+            output_path, 
+            enable_license_plate=enable_license_plate, 
+            enable_speed=enable_speed
+        )
+        
+        # 计算处理时间
+        processing_time = int(time.time() - start_time)
         
         # 后处理视频
         try:
             temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_{unique_id}.mp4")
-            ffmpeg_cmd = f"ffmpeg -i {actual_output_path} -c:v libx264 -preset medium -movflags faststart {temp_path} -y -loglevel warning"
+            ffmpeg_cmd = f"ffmpeg -i {output_path} -c:v libx264 -preset medium -movflags faststart {temp_path} -y -loglevel warning"
             log_info(f"执行ffmpeg命令: {ffmpeg_cmd}")
             exit_code = os.system(ffmpeg_cmd)
             
             if exit_code == 0:
-                os.replace(temp_path, actual_output_path)
+                os.replace(temp_path, output_path)
                 log_info("元数据优化成功")
             else:
                 log_error(f"ffmpeg处理失败，退出码：{exit_code}")
@@ -492,76 +616,111 @@ def video_predict():
         except Exception as e:
             log_error(f"元数据处理失败: {str(e)}（视频仍可下载，但可能无法流式播放）")
         
-        # 提取处理结果
-        detections = []
+        # 优化检测结果的格式，确保与前端期望的格式一致
+        formatted_detections = []
+        all_objects = []  # 用于收集所有检测到的对象
+        
+        # 将每帧的检测结果重新组织为前端可识别的格式
         for result in processing_results:
-            if isinstance(result, dict):
-                license_plates = result.get('license_plates', [])
-                if license_plates:
-                    detections.append({
-                        'frame': result.get('frame', 0),
-                        'detections': license_plates
-                    })
-                # 检查是否有车辆检测结果
-                vehicles = result.get('vehicles', [])
-                if vehicles and detection_type in ['general', 'vehicle', 'integrated']:
-                    # 确保每个车辆对象都有class_name字段
-                    processed_vehicles = []
-                    for vehicle in vehicles:
-                        vehicle_data = vehicle.copy()  # 创建副本以避免修改原始数据
-                        # 确保包含class_name字段
-                        if 'type' in vehicle and not 'class_name' in vehicle:
-                            vehicle_data['class_name'] = vehicle['type']
-                        if 'class' in vehicle and not 'class_name' in vehicle:
-                            vehicle_data['class_name'] = vehicle['class']
-                        processed_vehicles.append(vehicle_data)
-                    
-                    if not any(d.get('frame') == result.get('frame', 0) for d in detections):
-                        detections.append({
-                            'frame': result.get('frame', 0),
-                            'detections': processed_vehicles
-                        })
-        
-        # 记录检测结果数量，帮助调试
-        detection_count = sum(len(d.get('detections', [])) for d in detections)
-        log_info(f"视频处理完成，共提取 {len(detections)} 帧检测结果，{detection_count} 个检测对象")
-        
-        # 如果没有检测到任何目标，添加一个模拟的检测结果
-        if not detections:
-            log_warning("未检测到任何目标，添加模拟数据确保前端显示正常")
-            # 添加模拟检测数据
-            detections.append({
-                'frame': 0,
-                'detections': [
-                    {
-                        'class': '未检测到目标',
-                        'class_name': '未检测到目标',
-                        'confidence': 1.0,
-                        'coordinates': [0, 0, 0, 0]
-                    }
-                ]
-            })
+            frame_detections = []
             
-            # 打印模拟数据
-            log_info(f"添加模拟数据: {detections}")
+            # 处理车辆检测结果
+            if 'vehicles' in result and result['vehicles']:
+                for vehicle in result['vehicles']:
+                    detection_obj = {
+                        'class_name': vehicle.get('class_name', '车辆'),
+                        'type': 'vehicle',
+                        'confidence': vehicle.get('confidence', 0.0),
+                        'coordinates': vehicle.get('coordinates', [])
+                    }
+                    frame_detections.append(detection_obj)
+                    all_objects.append(detection_obj)
+            
+            # 处理车牌检测结果
+            if 'license_plates' in result and result['license_plates']:
+                for plate in result['license_plates']:
+                    detection_obj = {
+                        'class_name': '车牌',
+                        'type': 'license_plate',
+                        'confidence': plate.get('confidence', 0.0),
+                        'coordinates': plate.get('coordinates', [])
+                    }
+                    if 'text' in plate:
+                        detection_obj['plate_text'] = plate['text']
+                    frame_detections.append(detection_obj)
+                    all_objects.append(detection_obj)
+            
+            # 处理事故检测结果
+            if 'accidents' in result and result['accidents']:
+                for accident in result['accidents']:
+                    detection_obj = {
+                        'class_name': '事故',
+                        'type': 'accident',
+                        'confidence': accident.get('confidence', 0.0),
+                        'coordinates': accident.get('coordinates', [])
+                    }
+                    frame_detections.append(detection_obj)
+                    all_objects.append(detection_obj)
+            
+            # 处理违章检测结果
+            if 'violations' in result and result['violations']:
+                for violation in result['violations']:
+                    detection_obj = {
+                        'class_name': violation.get('type', '违章'),
+                        'type': 'violation',
+                        'confidence': violation.get('confidence', 0.0),
+                        'coordinates': violation.get('coordinates', [])
+                    }
+                    frame_detections.append(detection_obj)
+                    all_objects.append(detection_obj)
+            
+            # 处理超速检测结果
+            if 'speed_tracking' in result and result['speed_tracking']:
+                for track in result['speed_tracking']:
+                    detection_obj = {
+                        'class_name': '超速',
+                        'type': 'overspeed',
+                        'confidence': 1.0,  # 默认置信度
+                        'coordinates': track.get('bbox', []),
+                        'speed': track.get('speed', 0)
+                    }
+                    frame_detections.append(detection_obj)
+                    all_objects.append(detection_obj)
+            
+            # 只有当有检测结果时才添加到总结果中
+            if frame_detections:
+                formatted_detections.append({
+                    'frame': result.get('frame', 0),
+                    'detections': frame_detections
+                })
         
-        # 打印检测数据的结构，帮助调试
-        if detections:
-            log_info(f"检测数据示例: {detections[0]}")
-            if 'detections' in detections[0] and detections[0]['detections']:
-                log_info(f"检测对象示例: {detections[0]['detections'][0]}")
+        # 如果没有检测到任何对象，确保返回一些默认数据以便前端正确显示
+        if not all_objects:
+            # 添加常见类别的空检测数据，确保前端可以显示类别列表
+            default_classes = [
+                {'class_name': '小汽车', 'type': 'vehicle'},
+                {'class_name': '公交车', 'type': 'vehicle'},
+                {'class_name': '卡车', 'type': 'vehicle'},
+                {'class_name': '车牌', 'type': 'license_plate'},
+                {'class_name': '事故', 'type': 'accident'},
+                {'class_name': '违停', 'type': 'violation'}
+            ]
+            
+            for cls in default_classes:
+                all_objects.append({
+                    'class_name': cls['class_name'],
+                    'type': cls['type'],
+                    'confidence': 0.0,
+                    'coordinates': []
+                })
         
-        download_url = f"/download/{os.path.basename(actual_output_path)}"
-        streaming_url = f"/stream/{os.path.basename(actual_output_path)}"
+        download_url = f"/download/{output_filename}"
         threading.Thread(target=cleanup_temp_files).start()
         
         # 发布视频处理结果到MQTT
         if mqtt_client.is_connected() and not mqtt_client.is_paused():
             # 检查处理结果中是否有需要发送命令的事件
             for result in processing_results:
-                if not isinstance(result, dict):
-                    continue
-                    
                 # 检查事故
                 if result.get('accidents'):
                     mqtt_client.publish_command('accident')
@@ -580,24 +739,22 @@ def video_predict():
             # 提取关键信息以避免发送过大的数据
             mqtt_data = {
                 'detection_type': detection_type,
-                'detections': detections,
+                'detections': formatted_detections,
                 'video_url': download_url
             }
             mqtt_client.publish_detection(mqtt_data, None)
         
+        # 为了与前端兼容，将所有检测到的对象直接放到detections数组中
         return jsonify({
             'status': '处理完成',
             'detection_type': detection_type,
-            'detections': detections,
+            'detections': all_objects,  # 直接返回所有检测到的对象
             'download_url': download_url,
-            'stream_url': streaming_url,
-            'total_frames': len(processing_results) if isinstance(processing_results, list) else 0,
-            'processing_time': int(time.time() - os.path.getctime(input_path))
+            'stream_url': f"/stream/{output_filename}",
+            'processing_time': processing_time  # 添加处理时间
         })
     except Exception as e:
         log_error(f"视频处理失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
         return jsonify({'error': f'视频处理失败: {str(e)}'}), 500
 
 # 添加日志警告函数
@@ -668,6 +825,7 @@ def stream_video(filename):
     
     return response
 
+
 # API端点 - 服务器状态
 @app.route('/api/status', methods=['GET'])
 def server_status():
@@ -724,17 +882,52 @@ if __name__ == '__main__':
     
     # 设置MQTT日志函数并连接
     mqtt_client.set_logger(log_info, log_error)
-    if mqtt_client.connect():
-        log_info("MQTT客户端已连接")
-    else:
-        log_error("MQTT客户端连接失败")
     
+    # 尝试多次连接MQTT服务器
+    mqtt_connected = False
+    mqtt_retry_count = 0
+    mqtt_max_retries = 5
+    
+    while not mqtt_connected and mqtt_retry_count < mqtt_max_retries:
+        if mqtt_client.connect():
+            log_info("MQTT客户端已连接")
+            mqtt_connected = True
+        else:
+            mqtt_retry_count += 1
+            log_error(f"MQTT客户端连接失败 (尝试 {mqtt_retry_count}/{mqtt_max_retries})")
+            time.sleep(2)  # 等待2秒后重试
+    
+    if not mqtt_connected:
+        log_warning("MQTT连接失败，将在后台继续尝试自动重连")
+    
+    # 创建视频流处理线程并设置优先级
+    import threading
     video_stream_thread = threading.Thread(
         target=process_stream, 
         args=('rtmp://127.0.0.1/live/livestream',), 
-        daemon=True
+        daemon=True,
+        name="StreamProcessor"
     )
+    # 设置为较高优先级
     video_stream_thread.start()
+    
+    # 设置全局异常处理
+    def handle_thread_exception(args):
+        log_error(f"线程异常: {args.exc_type.__name__}: {args.exc_value}")
+        log_error(f"线程名称: {args.thread.name}")
+        # 如果是视频流线程崩溃，尝试重新启动
+        if args.thread.name == "StreamProcessor":
+            log_info("尝试重新启动视频流处理线程...")
+            new_thread = threading.Thread(
+                target=process_stream, 
+                args=('rtmp://127.0.0.1/live/livestream',), 
+                daemon=True,
+                name="StreamProcessor"
+            )
+            new_thread.start()
+    
+    # 设置线程异常处理器
+    threading.excepthook = handle_thread_exception
     
     log_info("YOLO服务器启动中...")
     
@@ -758,190 +951,21 @@ if __name__ == '__main__':
 def get_plate_detector():
     global plate_detector
     if plate_detector is None:
-        log_info("加载车牌专用检测器 (hytt.onnx)")
-        if os.path.exists("models/hytt.onnx"):
-            plate_detector = detection.get_detector("models/hytt.onnx", device=device, conf_threshold=0.35)
+        log_info("加载车牌专用检测器 (zhlkv3.onnx)")
+        if os.path.exists("models/zhlkv3.onnx"):
+            plate_detector = detection.get_detector("models/zhlkv3.onnx", device=device, conf_threshold=0.35)
         else:
-            log_error("未找到车牌专用模型，使用通用模型代替")
+            log_error("未找到zhlkv3.onnx模型，使用通用模型代替")
             plate_detector = detector
     return plate_detector
 
 def get_accident_detector():
     global accident_detector
     if accident_detector is None:
-        log_info("加载事故专用检测器 (zhlkv2.onnx)")
-        if os.path.exists("models/zhlkv2.onnx"):
-            accident_detector = detection.get_detector("models/zhlkv2.onnx", device=device, conf_threshold=0.4)
+        log_info("加载事故专用检测器 (zhlkv3.onnx)")
+        if os.path.exists("models/zhlkv3.onnx"):
+            accident_detector = detection.get_detector("models/zhlkv3.onnx", device=device, conf_threshold=0.4)
         else:
-            log_error("未找到事故专用模型，使用通用模型代替") 
+            log_error("未找到zhlkv3.onnx模型，使用通用模型代替") 
             accident_detector = detector
     return accident_detector
-
-# 增加专门用于车辆检测的视频处理API
-@app.route('/vehicle_video_detect', methods=['POST'])
-def vehicle_video_detect():
-    try:
-        if 'video' not in request.files:
-            return jsonify({'error': '未接收到视频文件'}), 400
-            
-        file = request.files['video']
-        if file.filename == '':
-            return jsonify({'error': '未选择文件'}), 400
-            
-        if not allowed_file(file.filename):
-            return jsonify({'error': '不支持的文件类型'}), 400
-        
-        # 获取额外参数
-        conf_threshold = float(request.form.get('confidence', 0.4))  # 置信度阈值
-        skip_frames = int(request.form.get('skip_frames', 3))  # 跳过的帧数，提高处理速度
-        vehicle_only = request.form.get('vehicle_only', 'true').lower() == 'true'  # 是否只检测车辆
-        
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        
-        # 保存上传的视频文件
-        file_ext = file.filename.rsplit('.', 1)[1].lower()
-        unique_id = uuid.uuid4().hex
-        input_filename = f"vehicle_detect_{unique_id}.{file_ext}"
-        output_filename = f"vehicle_result_{unique_id}.mp4"
-        input_path = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
-        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
-
-        file.save(input_path)
-        log_info(f"车辆检测视频已保存: {input_filename}")
-
-        # 创建处理参数
-        process_params = {
-            'skip_frames': skip_frames,
-            'batch_size': 4,  # 批处理大小，适中的值有助于提高性能
-            'enable_license_plate': not vehicle_only,  # 如果只检测车辆则禁用车牌检测
-            'enable_speed': False,  # 默认不启用速度检测，速度检测需要额外计算
-            'conf_threshold': conf_threshold  # 设置置信度阈值
-        }
-        
-        # 调用视频处理函数
-        try:
-            from detection.video_processor import process_video
-            
-            log_info(f"开始进行车辆视频检测，参数: {process_params}")
-            
-            actual_output_path, processing_results = process_video(
-                input_path, 
-                output_path, 
-                detector=detector, 
-                **process_params
-            )
-            
-            # 确保输出路径有效
-            if not actual_output_path or not os.path.exists(actual_output_path):
-                actual_output_path = output_path
-                log_error(f"视频处理返回的输出路径无效，使用默认输出路径: {output_path}")
-                
-        except Exception as process_error:
-            log_error(f"车辆视频处理失败: {str(process_error)}")
-            import traceback
-            traceback.print_exc()
-            return jsonify({'error': f'车辆视频处理失败: {str(process_error)}'}), 500
-        
-        # 优化视频以适合流式播放
-        try:
-            temp_path = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_{unique_id}.mp4")
-            ffmpeg_cmd = f"ffmpeg -i {actual_output_path} -c:v libx264 -preset fast -movflags faststart {temp_path} -y -loglevel warning"
-            log_info(f"执行ffmpeg命令: {ffmpeg_cmd}")
-            exit_code = os.system(ffmpeg_cmd)
-            
-            if exit_code == 0:
-                os.replace(temp_path, actual_output_path)
-                log_info("视频优化成功")
-            else:
-                log_error(f"ffmpeg处理失败，退出码：{exit_code}")
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-        except Exception as e:
-            log_error(f"视频优化失败: {str(e)}（视频仍可下载，但可能无法流式播放）")
-        
-        # 提取车辆检测结果
-        vehicle_detections = []
-        vehicle_types = {}  # 统计不同类型车辆数量
-        vehicle_colors = {}  # 统计不同颜色车辆数量
-        
-        for result in processing_results:
-            if isinstance(result, dict) and 'vehicles' in result:
-                vehicles = result.get('vehicles', [])
-                frame = result.get('frame', 0)
-                
-                frame_vehicles = []
-                for vehicle in vehicles:
-                    # 提取车辆信息
-                    vehicle_type = vehicle.get('type', '未知')
-                    vehicle_color = vehicle.get('color', '未知')
-                    confidence = vehicle.get('conf', 0.0)
-                    
-                    # 统计车辆类型
-                    if vehicle_type in vehicle_types:
-                        vehicle_types[vehicle_type] += 1
-                    else:
-                        vehicle_types[vehicle_type] = 1
-                        
-                    # 统计车辆颜色
-                    if vehicle_color in vehicle_colors:
-                        vehicle_colors[vehicle_color] += 1
-                    else:
-                        vehicle_colors[vehicle_color] = 1
-                    
-                    # 只保留需要的字段减小数据量
-                    frame_vehicles.append({
-                        'type': vehicle_type,
-                        'color': vehicle_color,
-                        'conf': confidence,
-                        'box': vehicle.get('box', [0, 0, 0, 0])
-                    })
-                
-                if frame_vehicles:
-                    vehicle_detections.append({
-                        'frame': frame,
-                        'vehicles': frame_vehicles
-                    })
-        
-        # 统计检测结果
-        total_vehicles = sum(vehicle_types.values())
-        
-        # 准备返回数据
-        download_url = f"/download/{os.path.basename(actual_output_path)}"
-        streaming_url = f"/stream/{os.path.basename(actual_output_path)}"
-        
-        # 清理临时文件
-        threading.Thread(target=cleanup_temp_files).start()
-        
-        # 如果启用了MQTT，发送检测汇总信息
-        if mqtt_client.is_connected() and not mqtt_client.is_paused():
-            # 发送汇总数据
-            summary_data = {
-                'detection_type': 'vehicle',
-                'total_vehicles': total_vehicles,
-                'vehicle_types': vehicle_types,
-                'vehicle_colors': vehicle_colors,
-                'video_url': download_url
-            }
-            mqtt_client.publish_detection(summary_data, None)
-        
-        # 返回结果
-        return jsonify({
-            'status': '车辆检测完成',
-            'total_vehicles': total_vehicles,
-            'vehicle_types': vehicle_types,
-            'vehicle_colors': vehicle_colors,
-            'detections': vehicle_detections[:100],  # 只返回前100帧的检测结果，避免数据过大
-            'download_url': download_url,
-            'stream_url': streaming_url,
-            'processing_info': {
-                'total_frames_processed': len(processing_results),
-                'processing_time': time.time() - os.path.getctime(input_path),
-                'conf_threshold': conf_threshold,
-                'skip_frames': skip_frames
-            }
-        })
-    except Exception as e:
-        log_error(f"车辆检测失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'车辆检测失败: {str(e)}'}), 500

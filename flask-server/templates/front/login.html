@@ -4,19 +4,8 @@
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='front/css/auth.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='front/css/login.css') }}">
 <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>
-    /* 覆盖基础模板中的内容区域样式，使登录页面全屏显示 */
-    .content {
-        margin-left: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* 在登录页面上隐藏侧边栏 */
-    .sidebar, .sidebar-overlay, .mobile-nav-trigger {
-        display: none !important;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -30,11 +19,11 @@
                     <object data="{{ url_for('static', filename='common/svg/logo.svg') }}"
                           type="image/svg+xml" width="48" height="48">
                         <img src="{{ url_for('static', filename='common/svg/logo.svg') }}"
-                           alt="慧眼通途" width="48" height="48">
+                           alt="HorizonSafe 界安" width="48" height="48">
                     </object>
-                    慧眼通途
+                    <span class="brand-name">HorizonSafe 界安</span>
                 </h1>
-                <p class="highlight slide-in-left-delay">基于YOLOv11的智能检测平台</p>
+                <p class="highlight slide-in-left-delay">基于 “YOLO11” 的智能检测平台</p>
             </div>
 
             <!-- 功能列表 -->

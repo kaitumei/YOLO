@@ -1,24 +1,12 @@
 {% extends 'common/front_base.html' %}
 
-{% block title %}【界安】 - 用户注册{% endblock %}
+{% block title %}【HorizonSafe 界安】--- 注册{% endblock %}
 
 {% block css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='front/css/auth.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='front/css/register.css') }}">
 <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<style>
-    /* 覆盖基础模板中的内容区域样式，使注册页面全屏显示 */
-    .content {
-        margin-left: 0 !important;
-        padding: 0 !important;
-    }
-    
-    /* 在注册页面上隐藏侧边栏 */
-    .sidebar, .sidebar-overlay, .mobile-nav-trigger {
-        display: none !important;
-    }
-</style>
 {% endblock %}
-
 {% block content %}
 <!-- 注册表单区域 -->
 <div class="content-wrapper animate-in">
@@ -33,9 +21,9 @@
                         <img src="{{ url_for('static', filename='common/svg/logo.svg') }}"
                            alt="界安" width="48" height="48">
                     </object>
-                    【HorizonSafe】界安
+                    <span class="brand-name">HorizonSafe 界安</span>
                 </h1>
-                <p class="highlight slide-in-left-delay">基于YOLOv11的智能检测平台</p>
+                <p class="highlight slide-in-left-delay">基于 “YOLO11” 的智能检测平台</p>
             </div>
             
             <!-- 介绍点 -->

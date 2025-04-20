@@ -1,205 +1,9 @@
 {% extends "common/front_base.html" %}
 
-{% block title %}YOLO视频检测 - 慧眼通途{% endblock %}
+{% block title %}【HorizonSafe 界安】- YOLO视频检测{% endblock %}
 
 {% block css %}
-<style>
-    .upload-box { 
-        border: 2px dashed #ccc; 
-        padding: 30px; 
-        text-align: center; 
-        border-radius: 10px;
-        background-color: #f9f9f9;
-        transition: all 0.3s ease;
-    }
-    .upload-box:hover {
-        border-color: var(--primary-color);
-        background-color: #f0f7f0;
-    }
-    .upload-box.drag-active {
-        border-color: var(--primary-color);
-        background-color: rgba(76, 175, 80, 0.1);
-        transform: scale(1.01);
-    }
-    #progress { 
-        margin-top: 15px; 
-        height: 10px; 
-        background: #f0f0f0;
-        border-radius: 5px;
-        overflow: hidden;
-    }
-    #progressBar { 
-        width: 0%; 
-        height: 100%; 
-        background: linear-gradient(90deg, var(--primary-color), var(--accent-color, #8bc34a));
-        transition: width 0.3s;
-        border-radius: 5px;
-    }
-    .loader {
-        display: none;
-        margin: 25px auto;
-        border: 5px solid #f3f3f3;
-        border-top: 5px solid var(--accent-color, #3498db);
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1.5s linear infinite;
-    }
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    .detection-info {
-        margin-top: 20px;
-        padding: 15px;
-        background: #f0f7ff;
-        border-radius: 8px;
-        border-left: 4px solid var(--accent-color, #2196F3);
-    }
-    #resultInfo, #videoPlayerSection {
-        opacity: 0;
-        transform: translateY(20px);
-        transition: all 0.5s ease;
-    }
-    #resultInfo.visible, #videoPlayerSection.visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    #uploadLabel {
-        padding: 15px;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: block;
-    }
-    #uploadLabel:hover {
-        color: var(--primary-color, #4CAF50);
-    }
-    #uploadIcon {
-        font-size: 48px;
-        color: var(--primary-color, #4CAF50);
-        margin-bottom: 15px;
-        opacity: 0.8;
-    }
-    video {
-        width: 100%;
-        border-radius: 8px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-    }
-    .page-card {
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-        padding: 25px;
-        margin-bottom: 20px;
-    }
-    .button { 
-        padding: 10px 20px; 
-        background: var(--primary-color, #4CAF50); 
-        color: white; 
-        border: none; 
-        border-radius: 5px; 
-        cursor: pointer; 
-        text-decoration: none;
-        transition: all 0.3s;
-        display: inline-block;
-        margin-top: 15px;
-        font-weight: 500;
-    }
-    .button:hover { 
-        background: var(--primary-darker, #45a049); 
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    .button:disabled {
-        background: #cccccc;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-    }
-    .alert {
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        display: none;
-    }
-    .alert-error {
-        background-color: #ffebee;
-        border-left: 4px solid #f44336;
-        color: #b71c1c;
-    }
-    .alert-info {
-        background-color: #e3f2fd;
-        border-left: 4px solid #2196F3;
-        color: #0d47a1;
-    }
-    .detection-stats {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        margin-top: 15px;
-    }
-    .stat-card {
-        background: #f5f5f5;
-        border-radius: 8px;
-        padding: 15px;
-        flex: 1;
-        min-width: 150px;
-        text-align: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .stat-card .stat-value {
-        font-size: 24px;
-        font-weight: bold;
-        color: var(--primary-color, #4CAF50);
-    }
-    .stat-card .stat-label {
-        font-size: 14px;
-        color: #666;
-        margin-top: 5px;
-    }
-    .detect-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-    .detect-item .class-color {
-        width: 16px;
-        height: 16px;
-        border-radius: 4px;
-        margin-right: 10px;
-    }
-    #cancelBtn {
-        background-color: #f44336;
-        margin-left: 10px;
-        display: none;
-    }
-    #cancelBtn:hover {
-        background-color: #d32f2f;
-    }
-    #helpTips {
-        margin-top: 15px;
-        color: #666;
-        font-size: 14px;
-    }
-    /* 新增的CSS类，用于替换内联样式 */
-    .hidden {
-        display: none;
-    }
-    .margin-top-15 {
-        margin-top: 15px;
-    }
-    .processing-time-info {
-        margin-top: 15px;
-    }
-    .class-item-container {
-        display: flex; 
-        flex-wrap: wrap;
-    }
-    .class-item {
-        flex: 0 0 33.33%; 
-        margin-bottom: 15px;
-    }
-</style>
+<link rel="stylesheet" href="{{ url_for('static', filename='check/css/video.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -243,11 +47,7 @@
         <div class="detection-stats">
             <div class="stat-card">
                 <div class="stat-value" id="totalObjectsValue">0</div>
-                <div class="stat-label">检测到的目标总数</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="classesValue">0</div>
-                <div class="stat-label">目标类别数</div>
+                <div class="stat-label">检测到的目标类别数</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value" id="processingTimeValue">0s</div>
@@ -258,8 +58,54 @@
         <div id="processingTimeInfo" class="processing-time-info"></div>
         <div id="objectsDetectedInfo"></div>
         <div class="detection-info" id="detectionSummary" aria-live="polite"></div>
-        <div class="detection-info" id="detectionSummary"></div>
-        <a id="downloadBtn" class="button">下载处理后的视频</a>
+        
+        <!-- 添加导出数据按钮和下拉菜单 -->
+        <div class="results-actions">
+            <div class="download-dropdown" id="downloadDropdown">
+                <button type="button" class="download-results-btn" id="downloadBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    导出检测数据
+                </button>
+                <div class="download-dropdown-content" id="downloadOptions">
+                    <a href="#" onclick="downloadDetectionResults('csv'); return false;">
+                        <span class="download-format-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <path d="M10 12 a2 2 0 0 1 4 0v4a2 2 0 0 1-4 0v-4"></path>
+                            </svg>
+                        </span>
+                        CSV格式
+                    </a>
+                    <a href="#" onclick="downloadDetectionResults('excel'); return false;">
+                        <span class="download-format-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <rect x="8" y="12" width="8" height="6"></rect>
+                            </svg>
+                        </span>
+                        Excel格式
+                    </a>
+                    <a href="#" onclick="downloadDetectionResults('txt'); return false;">
+                        <span class="download-format-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                                <line x1="8" y1="13" x2="16" y2="13"></line>
+                                <line x1="8" y1="17" x2="16" y2="17"></line>
+                            </svg>
+                        </span>
+                        TXT格式
+                    </a>
+                </div>
+            </div>
+        </div>
+        <a id="downloadVideoBtn" class="button">下载处理后的视频</a>
     </div>
 
     <!-- 视频播放区域 -->
@@ -520,102 +366,40 @@
         document.getElementById('processingTimeInfo').innerText = `处理用时: ${processingTimeInt}秒`;
         document.getElementById('processingTimeValue').innerText = `${processingTimeInt}秒`;
         
-        // 检查是否有检测数据并显示摘要
+        // 修改检测数据处理逻辑，适应app.py的返回格式
         if (response.detections && Array.isArray(response.detections)) {
             console.log('检测结果数组长度:', response.detections.length);
             if (response.detections.length > 0) {
-                console.log('第一个检测数据:', response.detections[0]);
+                console.log('检测数据样本:', response.detections[0]);
             }
             
             // 用于跟踪已经出现过的类别
             const uniqueClasses = new Set();
-            // 计算检测到的对象总数和分类统计
+            // 恢复类别计数，用于计算比例
             const classObjectCounts = {};
             
-            response.detections.forEach(frameData => {
-                console.log('处理帧数据:', frameData);
-                
-                // 检查是否是带有frame和detections字段的对象结构
-                if (frameData && frameData.detections && Array.isArray(frameData.detections)) {
-                    console.log('处理嵌套检测数据:', frameData.detections.length);
-                    frameData.detections.forEach(detection => {
-                        console.log('处理检测对象:', detection);
-                        
-                        // 尝试获取类别名称，兼容不同的字段名
-                        let className = null;
-                        if (detection.type) {
-                            className = detection.type;
-                        } else if (detection.class_name) {
-                            className = detection.class_name;
-                        } else if (detection.class) {
-                            className = detection.class;
-                        } else if (detection.name) {
-                            className = detection.name;
-                        } else {
-                            className = '未知类别';
-                        }
-                        
-                        // 打印调试信息帮助追踪
-                        console.log('提取的类别:', className, '来源字段:', 
-                            detection.type ? 'type' : 
-                            detection.class_name ? 'class_name' : 
-                            detection.class ? 'class' : 
-                            detection.name ? 'name' : '无');
-                        
-                        // 统计每个类别的数量
-                        classObjectCounts[className] = (classObjectCounts[className] || 0) + 1;
-                        // 记录唯一类别
-                        uniqueClasses.add(className);
-                    });
-                } else if (Array.isArray(frameData)) {
-                    // 如果是旧格式，直接处理数组
-                    console.log('处理普通数组格式:', frameData.length);
-                    frameData.forEach(detection => {
-                        // 尝试获取类别名称，兼容不同的字段名
-                        let className = null;
-                        if (detection.type) {
-                            className = detection.type;
-                        } else if (detection.class_name) {
-                            className = detection.class_name;
-                        } else if (detection.class) {
-                            className = detection.class;
-                        } else if (detection.name) {
-                            className = detection.name;
-                        } else {
-                            className = '未知类别';
-                        }
-                        
-                        // 打印调试信息帮助追踪
-                        console.log('提取的类别:', className, '来源字段:', 
-                            detection.type ? 'type' : 
-                            detection.class_name ? 'class_name' : 
-                            detection.class ? 'class' : 
-                            detection.name ? 'name' : '无');
-                        
-                        // 统计每个类别的数量
-                        classObjectCounts[className] = (classObjectCounts[className] || 0) + 1;
-                        // 记录唯一类别
-                        uniqueClasses.add(className);
-                    });
-                }
+            // 扁平化处理所有检测结果
+            response.detections.forEach(detection => {
+                // 直接处理每个检测对象，提取类别信息
+                processDetection(detection, uniqueClasses, classObjectCounts);
             });
             
-            // 计算检测到的总对象数
-            const totalObjects = Object.values(classObjectCounts).reduce((sum, count) => sum + count, 0);
+            // 计算检测到的总类别出现次数
+            const totalOccurrences = Object.values(classObjectCounts).reduce((sum, count) => sum + count, 0);
             
             console.log('唯一类别:', Array.from(uniqueClasses));
-            console.log('对象计数:', classObjectCounts);
+            console.log('类别出现次数:', classObjectCounts);
+            console.log('总出现次数:', totalOccurrences);
             
-            // 更新统计卡片 - 只显示唯一类别的数量，而不是所有检测实例
-            document.getElementById('totalObjectsValue').innerText = totalObjects;
-            document.getElementById('classesValue').innerText = uniqueClasses.size;
+            // 更新统计卡片 - 只显示唯一类别的数量
+            document.getElementById('totalObjectsValue').innerText = uniqueClasses.size;
             
             // 显示总数
             document.getElementById('objectsDetectedInfo').innerText = 
-                `共检测到 ${totalObjects} 个目标对象，涵盖 ${uniqueClasses.size} 种类别`;
+                `共检测到 ${uniqueClasses.size} 种目标类别`;
             
             // 显示对象类别统计
-            let summaryHTML = '<h3>目标检测统计</h3><div class="class-item-container">';
+            let summaryHTML = '<h3>目标类别统计</h3><div class="class-item-container">';
             
             // 为每个类别生成随机颜色
             const classColors = {};
@@ -623,32 +407,29 @@
                 classColors[className] = generateRandomColor();
             }
             
-            // 创建更视觉化的统计
+            // 创建更视觉化的统计 - 根据类别出现次数计算比例
             for (const [className, count] of Object.entries(classObjectCounts)) {
-                const percentage = ((count / totalObjects) * 100).toFixed(1);
+                const percentage = ((count / totalOccurrences) * 100).toFixed(1);
                 summaryHTML += `
                     <div class="detect-item class-item">
                         <div class="class-color" style="background-color: ${classColors[className]}"></div>
                         <div>
-                            <strong>${className}</strong>: ${count}个 (${percentage}%)
+                            <strong>${className}</strong>: ${count}次 (${percentage}%)
                         </div>
                     </div>`;
             }
             summaryHTML += '</div>';
             
-            // 添加饼图或柱状图可视化统计（如果有需要，这里可以集成图表库）
-            
             document.getElementById('detectionSummary').innerHTML = summaryHTML;
         } else {
             console.log('没有检测结果或结果格式错误');
             document.getElementById('totalObjectsValue').innerText = '0';
-            document.getElementById('classesValue').innerText = '0';
             document.getElementById('objectsDetectedInfo').innerText = '暂无检测数据';
             document.getElementById('detectionSummary').innerHTML = '';
         }
         
         // 设置下载按钮
-        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadBtn = document.getElementById('downloadVideoBtn');
         downloadBtn.href = downloadUrl;
         downloadBtn.download = videoFilename;
         downloadBtn.title = `下载处理后的视频: ${videoFilename}`;
@@ -682,6 +463,178 @@
         document.getElementById('progress').style.display = 'block';
         updateProgress(0);
         updateStatus('上传新视频进行检测', '#000');
+        
+        // 初始化下拉菜单
+        initializeDropdown();
+    }
+    
+    // 添加辅助函数，处理检测对象
+    function processDetection(detection, uniqueClasses, classObjectCounts) {
+        console.log('处理检测对象:', detection);
+        
+        // 尝试获取类别名称，优先使用class_name字段
+        let className = null;
+        if (detection.class_name) {
+            className = detection.class_name;
+        } else if (detection.class) {
+            className = detection.class;
+        } else if (detection.name) {
+            className = detection.name;
+        } else if (detection.type) {
+            className = detection.type;
+        } else {
+            className = '未知类别';
+        }
+        
+        // 打印调试信息帮助追踪
+        console.log('提取的类别:', className, '来源字段:', 
+            detection.class_name ? 'class_name' : 
+            detection.class ? 'class' : 
+            detection.name ? 'name' : 
+            detection.type ? 'type' : '无');
+        
+        // 统计每个类别的出现次数
+        classObjectCounts[className] = (classObjectCounts[className] || 0) + 1;
+        // 记录唯一类别
+        uniqueClasses.add(className);
+    }
+    
+    // 添加下载检测结果函数
+    function downloadDetectionResults(format = 'csv') {
+        // 检查是否有检测数据
+        const detectionSummary = document.getElementById('detectionSummary');
+        if (!detectionSummary || !detectionSummary.innerHTML.trim()) {
+            showAlert('没有可导出的检测数据', 'error');
+            return;
+        }
+        
+        // 获取类别数据
+        const classItems = document.querySelectorAll('.detect-item');
+        if (classItems.length === 0) {
+            showAlert('没有可导出的检测数据', 'error');
+            return;
+        }
+        
+        // 设置当前日期时间作为文件名的一部分
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        let fileContent = '';
+        let mimeType = '';
+        let fileExtension = '';
+        let successMessage = '';
+        
+        // 从DOM中收集数据
+        const classData = [];
+        classItems.forEach(item => {
+            const nameElement = item.querySelector('strong');
+            const countText = item.textContent.trim();
+            
+            // 提取类别名称和百分比及检测次数
+            const className = nameElement ? nameElement.textContent.trim() : '未知类别';
+            const countMatch = countText.match(/(\d+)次/);
+            const count = countMatch ? parseInt(countMatch[1]) : 0;
+            const percentMatch = countText.match(/\((\d+\.\d+)%\)/);
+            const percentage = percentMatch ? percentMatch[1] : '0.0';
+            
+            classData.push({
+                className,
+                count,
+                percentage
+            });
+        });
+        
+        // 获取唯一类别数
+        const classesCountText = document.getElementById('totalObjectsValue').textContent;
+        const classesCount = parseInt(classesCountText) || 0;
+        
+        // 根据不同格式生成不同内容
+        switch (format) {
+            case 'csv':
+                // 创建CSV内容
+                fileContent = "类别,检测次数,百分比\n";
+                classData.forEach(data => {
+                    fileContent += `"${data.className}",${data.count},${data.percentage}%\n`;
+                });
+                mimeType = 'text/csv;charset=utf-8;';
+                fileExtension = 'csv';
+                successMessage = '检测结果已成功导出为CSV文件';
+                break;
+                
+            case 'excel':
+                // 创建Excel兼容的CSV内容（Excel可以打开CSV文件）
+                fileContent = "\ufeff类别,检测次数,百分比\n"; // 添加BOM标记以支持中文
+                classData.forEach(data => {
+                    fileContent += `"${data.className}",${data.count},${data.percentage}%\n`;
+                });
+                mimeType = 'application/vnd.ms-excel;charset=utf-8;';
+                fileExtension = 'xls';
+                successMessage = '检测结果已成功导出为Excel文件';
+                break;
+                
+            case 'txt':
+                // 创建TXT内容
+                fileContent = "视频检测结果报告\n";
+                fileContent += "===================\n\n";
+                fileContent += `生成时间: ${now.toLocaleString()}\n`;
+                fileContent += `检测到的目标类别数: ${classesCount}\n\n`;
+                fileContent += "类别统计:\n";
+                fileContent += "-----------------\n";
+                
+                classData.forEach((data, index) => {
+                    fileContent += `${index + 1}. ${data.className}: ${data.count}次 (${data.percentage}%)\n`;
+                });
+                
+                mimeType = 'text/plain;charset=utf-8;';
+                fileExtension = 'txt';
+                successMessage = '检测结果已成功导出为TXT文件';
+                break;
+        }
+        
+        // 创建下载链接
+        const blob = new Blob([fileContent], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', `video-detection-results-${timestamp}.${fileExtension}`);
+        link.style.visibility = 'hidden';
+        
+        // 添加到DOM，触发下载，然后移除
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 显示成功提示
+        showAlert(successMessage, 'info');
+    }
+    
+    // 初始化下拉菜单功能
+    function initializeDropdown() {
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadOptions = document.getElementById('downloadOptions');
+        
+        if (downloadBtn && downloadOptions) {
+            // 点击按钮时显示/隐藏下拉菜单
+            downloadBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                downloadOptions.classList.toggle('show');
+            });
+            
+            // 点击页面其他位置关闭下拉菜单
+            document.addEventListener('click', function(e) {
+                if (!downloadBtn.contains(e.target) && !downloadOptions.contains(e.target)) {
+                    downloadOptions.classList.remove('show');
+                }
+            });
+            
+            // 为选项添加点击事件，选择后关闭下拉菜单
+            const options = downloadOptions.querySelectorAll('a');
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    downloadOptions.classList.remove('show');
+                });
+            });
+        }
     }
     
     // 初始化时设置上传图标

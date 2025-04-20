@@ -1,11 +1,15 @@
-import base64
+# 前台检测功能相关接口
+
+import base64,os
 import csv
 import io
-import os
 import uuid
 from datetime import datetime
 import subprocess
 import json
+from collections import deque  
+import threading
+import re
 
 import requests
 from flask import Blueprint, render_template, jsonify, current_app, send_from_directory, make_response, Response, g, send_file
@@ -24,26 +28,54 @@ from aiortc import RTCPeerConnection, RTCSessionDescription
 # 导入Redis客户端
 import redis
 
+# 导入stream蓝图中的视频元数据函数
+from src.blueprints.stream.views import save_video_metadata, sync_videos_with_redis, REDIS_VIDEO_KEY_PREFIX, RECORD_FOLDER
+
+# 导入本地的检测模块
+from src.blueprints.check.detection import check_frame_for_accident, save_accident_image, ACCIDENT_CLASS_NAMES
+
 UPLOAD_FOLDER = YoloBaseConfig.UPLOAD_FOLDER
 RESULT_FOLDER = YoloBaseConfig.RESULT_FOLDER
 YOLO_URL = YoloBaseConfig.URL
-RECORD_FOLDER = os.path.join(BaseConfig.MEDIA_ROOT, 'record')  # 新增record目录配置
+
+# 确保目录存在
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(RESULT_FOLDER, exist_ok=True)
+os.makedirs(RECORD_FOLDER, exist_ok=True)
+print(f"[视频检测] 使用记录文件夹: {RECORD_FOLDER}")
 
 bp = Blueprint('check', __name__, url_prefix='/check')
 
-# Redis连接配置
+# Redis连接配置,#使用单独的数据库存储文件内容
 redis_client = redis.Redis(
     host=BaseConfig.CACHE_REDIS_HOST,
     port=BaseConfig.CACHE_REDIS_PORT,
     password=BaseConfig.CACHE_REDIS_PASSWORD,
-    db=1  # 使用单独的数据库存储文件内容
+    db=1  
 )
 
-# 添加监控状态全局变量，默认为关闭
+# 添加监控状，默认为关闭
 monitoring_active = False
 
+# 检测历史记录存储（本地缓存）
+detection_history = deque(maxlen=10)  # 存储最近10条检测记录
+detection_history_lock = threading.Lock()  # 添加锁保证线程安全
+
+# 事故捕捉存储
+accident_captures = deque(maxlen=20)  # 存储最近20条事故捕捉记录
+accident_captures_lock = threading.Lock()  # 添加锁保证线程安全
+
+# 添加视频质量和性能设置全局变量
+video_quality_settings = {
+    'quality': 'HIGH',
+    'width': 1280,
+    'height': 720,
+    'jpegQuality': 0.9,
+    'frameSkip': 3    # 添加跳帧率设置
+}
+
 # --------------------------------------------------------#
-# ----------------------图片检测(已完成)---------------------#
+# ----------------------图片检测-已完成(已优化)-------------------#
 # --------------------------------------------------------#
 @bp.route("/picture" ,methods=['GET', 'POST'])
 @login_required
@@ -154,13 +186,12 @@ def picture():
             return render_template('check/picture.html', error=f"处理图片时发生错误: {str(e)}")
 
     return render_template('check/picture.html')
-
-#-----------------------------实时视频监控-------------------------#
-# --------------------------------------------------------#
-
+# ----------------------------------------------------------------#
+#----------------实时视频监控--已完成（已优化）---------------------#
+# ----------------------------------------------------------------#
 @bp.route('/monitor')
 def monitor():
-    # 传递监控的默认状态到模板
+    # 添加参数访问历史记录
     return render_template('check/monitor.html', monitoring_active=monitoring_active)
 
 @socketio.on('connect')
@@ -182,15 +213,81 @@ def handle_toggle_monitoring(data):
 
 @socketio.on('detection_frame')
 def handle_frame(data):
+    """处理检测帧数据，只有当监控启用时才广播"""
     # 只有当监控处于开启状态时才广播帧数据
-    global monitoring_active
+    global monitoring_active, video_quality_settings
     if monitoring_active:
+        # 添加当前视频质量设置到数据中
+        data['video_quality'] = video_quality_settings
         emit('update_frame', data, broadcast=True)
     else:
-        # 可选: 只对发送者回复监控未开启的消息
+        # 只对发送者回复监控未开启的消息
         emit('monitoring_inactive', {'message': '监控当前处于关闭状态'})
 
-#截图
+@socketio.on('save_accident')
+def handle_save_accident(data):
+    """处理事故捕捉保存请求"""
+    try:
+        print("[事故捕捉] 收到事故捕捉请求", flush=True)
+        
+        # 基本验证
+        if 'image' not in data:
+            print("[事故捕捉] 错误: 图像数据缺失", flush=True)
+            emit('accident_save_error', {'message': '图像数据缺失'})
+            return
+            
+        if 'detections' not in data:
+            print("[事故捕捉] 警告: 检测数据缺失，但仍继续处理", flush=True)
+            # 不强制要求检测数据
+        
+        # 打印检测数据以便调试
+        print(f"[事故捕捉] 检测数据: {data.get('detections')}", flush=True)
+            
+        # 创建事故记录对象
+        accident_record = {
+            'id': str(uuid.uuid4()),
+            'timestamp': datetime.now().isoformat(),
+            'image': data['image'],
+            'detections': data.get('detections', []),
+            'location': data.get('location', '未知位置'),
+            'manually_triggered': True
+        }
+        
+        print(f"[事故捕捉] 已创建记录ID: {accident_record['id']}", flush=True)
+        
+        # 保存到事故记录队列
+        with accident_captures_lock:
+            accident_captures.appendleft(accident_record)
+            
+        accident_count = len(accident_captures)
+        print(f"[事故捕捉] 已保存事故记录，当前记录数: {accident_count}", flush=True)
+        
+        # 使用独立模块保存图像
+        save_result = save_accident_image(data['image'])
+        if save_result['success']:
+            print(f"[事故捕捉] 事故图像已保存: {save_result['path']}", flush=True)
+            accident_record['file_path'] = save_result['path']
+            accident_record['file_url'] = save_result['url']
+        else:
+            print(f"[事故捕捉] 保存图像失败: {save_result.get('error')}", flush=True)
+        
+        # 返回保存成功的响应
+        emit('accident_saved', {
+            'status': 'success',
+            'id': accident_record['id'],
+            'message': '事故记录已保存'
+        })
+        
+        print(f"[事故捕捉] 成功完成处理，返回事故ID: {accident_record['id']}", flush=True)
+        
+    except Exception as e:
+        print(f"[事故捕捉] 保存事故记录失败: {str(e)}", flush=True)
+        import traceback
+        traceback.print_exc()
+        emit('accident_save_error', {'message': f'保存失败: {str(e)}'})
+
+
+# 截图功能
 @socketio.on('capture')
 def handle_capture(data):
     try:
@@ -221,7 +318,7 @@ def handle_capture(data):
         print(f"[截图错误] {str(e)}")
         emit('capture_error', {'message': '服务器保存失败'})
 
-# 在Socket.IO事件中处理视频保存
+# 视频保存
 @socketio.on('save_video')
 def handle_save_video(data):
     try:
@@ -284,7 +381,7 @@ def handle_save_video(data):
         traceback.print_exc()
         emit('video_save_error', {'message': f'服务器处理错误: {str(e)}'})
 
-# 添加一个路由用于下载保存的视频
+# 下载视频
 @bp.route('/videos/<filename>')
 @login_required
 def download_video(filename):
@@ -429,7 +526,7 @@ def video_predict():
         video_data = file.read()
         
         # 保存上传的视频文件到Redis
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
         secure_name = secure_filename(file.filename)
         _, ext = os.path.splitext(secure_name)
         input_filename = f"input_{timestamp}{ext}"
@@ -479,6 +576,9 @@ def video_predict():
         result = response.json()
         print(f"[视频检测] YOLO处理结果: {result}")
         
+        # 存储检测结果
+        detection_results = []
+        
         # 通过socketio广播检测结果给所有连接的客户端
         if 'detections' in result:
             try:
@@ -519,6 +619,9 @@ def video_predict():
                     'image': ''  # 添加空图像字段以兼容前端代码
                 })
                 
+                # 保存检测结果以用于元数据
+                detection_results = detections
+                
                 print(f"[视频检测] 检测结果已发送到前端")
             except Exception as e:
                 print(f"[视频检测] 发送检测结果失败: {str(e)}")
@@ -527,6 +630,8 @@ def video_predict():
         
         # 下载处理后的视频
         download_url = result.get('download_url', '')
+        video_duration = result.get('duration', '00:00:00')
+        
         if download_url:
             output_filename = os.path.basename(download_url)
             try:
@@ -568,12 +673,105 @@ def video_predict():
                         print(f"[视频检测] 处理后视频保存到RECORD_FOLDER失败或为空: {record_path}")
                     else:
                         print(f"[视频检测] 处理后视频已保存到RECORD_FOLDER: {record_path}")
+                    
+                    # 生成视频缩略图
+                    thumbnail_filename = f"thumb_{record_filename.replace('.mp4', '.jpg').replace('.webm', '.jpg')}"
+                    thumbnail_path = os.path.join(RECORD_FOLDER, 'thumbnails', thumbnail_filename)
+                    
+                    # 确保缩略图目录存在
+                    os.makedirs(os.path.join(RECORD_FOLDER, 'thumbnails'), exist_ok=True)
+                    
+                    try:
+                        import cv2
+                        # 使用OpenCV生成缩略图
+                        video = cv2.VideoCapture(record_path)
+                        # 尝试跳转到1秒处的帧
+                        video.set(cv2.CAP_PROP_POS_MSEC, 1000)
+                        success, image = video.read()
+                        if success:
+                            # 缩放到合适大小
+                            height, width = image.shape[:2]
+                            max_height = 180
+                            if height > max_height:
+                                scale = max_height / height
+                                new_width = int(width * scale)
+                                image = cv2.resize(image, (new_width, max_height))
+                            # 保存缩略图
+                            cv2.imwrite(thumbnail_path, image)
+                            print(f"[视频检测] 生成缩略图成功: {thumbnail_path}")
+                        else:
+                            print(f"[视频检测] 无法读取视频帧生成缩略图")
+                        video.release()
+                    except Exception as e:
+                        print(f"[视频检测] 生成缩略图失败: {str(e)}")
                         
                     # 更新结果URL为本地URL
                     result['download_url'] = url_for('check.download_video', filename=output_filename)
+                    # 同时设置stream_url来支持视频播放 - 使用流式播放路由
+                    result['stream_url'] = url_for('check.stream_video', filename=output_filename)
                     # 添加record路径信息到结果
                     result['record_path'] = os.path.join('media', 'record', record_filename)
                     result['record_filename'] = record_filename
+                    result['thumbnail_path'] = os.path.join('media', 'record', 'thumbnails', thumbnail_filename) if os.path.exists(thumbnail_path) else ''
+                    
+                    # 保存视频元数据到Redis
+                    try:
+                        # 获取视频时长
+                        if not video_duration or video_duration == '00:00:00':
+                            try:
+                                # 尝试使用ffprobe获取视频时长
+                                cmd = f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{record_path}"'
+                                result_duration = subprocess.check_output(cmd, shell=True, text=True).strip()
+                                seconds = float(result_duration)
+                                hours = int(seconds // 3600)
+                                minutes = int((seconds % 3600) // 60)
+                                secs = int(seconds % 60)
+                                video_duration = f"{hours:02d}:{minutes:02d}:{secs:02d}"
+                            except Exception as e:
+                                print(f"[视频检测] 获取视频时长失败: {str(e)}")
+                        
+                        # 获取检测结果统计
+                        detection_stats = {}
+                        total_objects = 0
+                        if detection_results:
+                            for frame in detection_results:
+                                if isinstance(frame, dict) and 'detections' in frame:
+                                    frame_detections = frame['detections']
+                                    for detection in frame_detections:
+                                        obj_class = detection.get('class', 'unknown')
+                                        if obj_class not in detection_stats:
+                                            detection_stats[obj_class] = 0
+                                        detection_stats[obj_class] += 1
+                                        total_objects += 1
+                                        
+                        # 创建视频元数据对象
+                        video_metadata = {
+                            'filename': record_filename,
+                            'path': record_path,
+                            'url': f"/media/record/{record_filename}",
+                            'thumbnail_url': f"/media/record/thumbnails/{thumbnail_filename}" if os.path.exists(thumbnail_path) else '',
+                            'size': f"{os.path.getsize(record_path) / (1024 * 1024):.2f}MB",
+                            'created': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            'timestamp': timestamp,
+                            'duration': video_duration,
+                            'detection_results': detection_stats,
+                            'total_detections': total_objects,
+                            'tags': ['检测'],
+                            'is_processed': True,
+                            'original_filename': secure_name
+                        }
+                        
+                        # 保存元数据到Redis
+                        save_result = save_video_metadata(video_metadata)
+                        if save_result.get('success', False):
+                            result['video_id'] = save_result.get('video_id')
+                            print(f"[视频检测] 视频元数据已保存到Redis，ID: {save_result.get('video_id')}")
+                        else:
+                            print(f"[视频检测] 保存视频元数据失败: {save_result.get('error')}")
+                    except Exception as e:
+                        print(f"[视频检测] 保存视频元数据到Redis出错: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
                     
                     print(f"[视频检测] 处理完成，更新的下载URL: {result['download_url']}")
                     
@@ -581,7 +779,8 @@ def video_predict():
                     socketio.emit('video_process_complete', {
                         'status': '视频处理完成',
                         'download_url': result['download_url'],
-                        'filename': output_filename
+                        'filename': output_filename,
+                        'video_id': result.get('video_id', '')
                     })
                 else:
                     print(f"[视频检测] 下载视频失败，状态码: {download_response.status_code}, 内容: {download_response.text[:200]}")
@@ -595,6 +794,12 @@ def video_predict():
             print("[视频检测] YOLO结果中没有下载URL")
             return jsonify({"error": "YOLO处理结果中缺少视频下载链接"}), 500
         
+        # 同步更新视频库
+        try:
+            sync_videos_with_redis()
+        except Exception as e:
+            print(f"[视频检测] 同步视频库失败: {str(e)}")
+        
         return jsonify(result)
         
     except Exception as e:
@@ -603,14 +808,16 @@ def video_predict():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+# 视频检测页面 
 @bp.route('/video')
 @login_required
 def video():
     """视频检测页面"""
     return render_template('check/video.html')
 
-
-
+#-----------------------------------------------------------------#
+# ----------------------------系统状态-----------------------------#
+#-----------------------------------------------------------------#
 @bp.route('/healthcheck')
 def healthcheck():
     """健康检查接口"""
@@ -620,8 +827,302 @@ def healthcheck():
     })
 
 
-@socketio.on('detection_frame')
-def handle_detection(data):
-    # 将检测结果广播给所有Web客户端
-    socketio.emit('update_frame', data)
+@bp.route('/api/detection_history', methods=['GET'])
+@login_required
+def get_detection_history():
+    """获取检测历史记录"""
+    try:
+        # 尝试从YOLO服务获取最新的检测历史
+        try:
+            response = requests.get(f"{YOLO_URL}/api/detection_history", timeout=5)
+            if response.status_code == 200:
+                history_data = response.json()
+                # 更新本地缓存
+                with detection_history_lock:
+                    detection_history.clear()
+                    for item in history_data:
+                        detection_history.append(item)
+                # print(f"[检测历史] 从YOLO服务获取了{len(history_data)}条历史记录")
+        except Exception as e:
+            # print(f"[检测历史] 从YOLO服务获取历史记录失败: {str(e)}")
+            # 出错时使用本地缓存的记录
+            pass
+        
+        # 返回本地缓存的记录
+        with detection_history_lock:
+            history_list = list(detection_history)
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(history_list),
+            'history': history_list
+        })
+    except Exception as e:
+        # print(f"[检测历史] 获取历史记录出错: {str(e)}")
+        pass
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@bp.route('/api/accident_captures', methods=['GET'])
+@login_required
+def get_accident_captures():
+    """获取事故捕捉记录"""
+    try:
+        with accident_captures_lock:
+            captures_list = list(accident_captures)
+        
+        # 处理返回数据，可能需要限制图像大小
+        for capture in captures_list:
+            # 限制图像大小以减少响应大小
+            if 'image' in capture and capture['image']:
+                # 仅当请求参数中指定了include_images=true时才包含图像数据
+                if request.args.get('include_images') != 'true':
+                    capture['image'] = ''
+        
+        return jsonify({
+            'status': 'success',
+            'count': len(captures_list),
+            'captures': captures_list
+        })
+    except Exception as e:
+        print(f"[事故捕捉] 获取事故记录失败: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+# 添加清空事故记录的API
+@bp.route('/api/accident_captures/clear', methods=['POST'])
+@login_required
+def clear_accident_captures():
+    """清空事故捕捉记录"""
+    try:
+        with accident_captures_lock:
+            accident_captures.clear()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '所有事故记录已清空'
+        })
+    except Exception as e:
+        print(f"[事故捕捉] 清空事故记录失败: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+# 添加一个额外的Socket事件处理函数，用于处理检测结果并自动检查事故
+@socketio.on('update_detections')
+def detection_handler(data):
+    """处理并存储检测结果，自动检查事故"""
+    try:
+        # 如果监控未启用，直接返回
+        global monitoring_active
+        if not monitoring_active:
+            return
+            
+        # 打印检测数据以便调试
+        print(f"[检测处理] 收到检测数据: {data.get('detections')}", flush=True)
+        
+        # 同时保存到历史记录中
+        if 'detections' in data and data['detections']:
+            with detection_history_lock:
+                # 创建新的记录对象
+                record = {
+                    'timestamp': datetime.now().isoformat(),
+                    'detections': data['detections'],
+                    'image': data.get('image', '')[:100000] if data.get('image') else None  # 限制图像大小
+                }
+                detection_history.appendleft(record)
+                print(f"[检测历史] 已保存新的检测记录，当前历史记录数: {len(detection_history)}", flush=True)
+                
+                # 检查是否有事故，如果有则自动保存到事故记录中
+                if 'image' in data and data.get('image') and check_frame_for_accident(data['detections']):
+                    print("[检测历史] 发现事故，自动保存到事故记录", flush=True)
+                    
+                    # 创建事故记录
+                    accident_record = {
+                        'id': str(uuid.uuid4()),
+                        'timestamp': datetime.now().isoformat(),
+                        'image': data['image'],
+                        'detections': data['detections'],
+                        'location': data.get('location', '未知位置'),
+                        'auto_detected': True
+                    }
+                    
+                    # 保存到事故队列
+                    with accident_captures_lock:
+                        accident_captures.appendleft(accident_record)
+                        print(f"[事故检测] 自动添加到事故队列，当前记录数: {len(accident_captures)}", flush=True)
+                    
+                    # 保存图像到文件系统
+                    save_result = save_accident_image(data['image'])
+                    if save_result['success']:
+                        print(f"[事故检测] 自动保存事故图像成功: {save_result['path']}", flush=True)
+                        accident_record['file_path'] = save_result['path']
+                        accident_record['file_url'] = save_result['url']
+                    
+                    # 通知客户端有事故捕捉
+                    socketio.emit('accident_detected', {
+                        'id': accident_record['id'],
+                        'timestamp': accident_record['timestamp'],
+                        'message': '系统自动检测到事故车辆',
+                        'success': True
+                    })
+                    
+                    # 发送短信通知 (新增)
+                    try:
+                        from src.utils.sms import send_accident_notification
+                        
+                        # 检查是否启用了短信功能
+                        sms_enabled = current_app.config.get('SMS_ENABLED', False)
+                        if not sms_enabled:
+                            print("[事故通知] 短信功能未启用，跳过短信通知", flush=True)
+                            return
+                            
+                        # 获取配置中的通知手机号码
+                        notify_numbers = current_app.config.get('ACCIDENT_NOTIFY_NUMBERS', [])
+                        if notify_numbers:
+                            # 格式化时间为人类可读形式
+                            accident_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                            # 获取事故类型
+                            accident_type = "交通事故"
+                            # 获取位置信息
+                            location = accident_record.get('location', '监控区域')
+                            
+                            # 遍历所有需要通知的手机号码
+                            for mobile in notify_numbers:
+                                try:
+                                    # 发送短信通知
+                                    result = send_accident_notification(mobile, accident_type, location, accident_time)
+                                    if result:
+                                        print(f"[事故通知] 成功发送短信通知到 {mobile}", flush=True)
+                                    else:
+                                        print(f"[事故通知] 发送短信通知到 {mobile} 失败", flush=True)
+                                except Exception as sms_err:
+                                    print(f"[事故通知] 向 {mobile} 发送短信时出错: {str(sms_err)}", flush=True)
+                        else:
+                            print("[事故通知] 未配置通知手机号码，跳过短信通知", flush=True)
+                    except Exception as notify_err:
+                        print(f"[事故通知] 发送短信通知时出错: {str(notify_err)}", flush=True)
+                    
+    except Exception as e:
+        print(f"[检测处理] 处理检测结果失败: {str(e)}", flush=True)
+        import traceback
+        traceback.print_exc()
+
+# 添加处理视频质量设置的事件
+@socketio.on('set_video_quality')
+def handle_set_video_quality(data):
+    """处理视频质量设置变更"""
+    global video_quality_settings
+    
+    try:
+        # 更新全局视频质量设置
+        video_quality_settings = {
+            'quality': data.get('quality', 'HIGH'),
+            'width': data.get('width', 1280),
+            'height': data.get('height', 720),
+            'jpegQuality': data.get('jpegQuality', 0.9),
+            'frameSkip': data.get('frameSkip', video_quality_settings.get('frameSkip', 3))  # 保留现有的跳帧率或使用默认值
+        }
+        
+        print(f"[视频设置] 画质已更新为: {video_quality_settings['quality']}, " \
+              f"分辨率: {video_quality_settings['width']}x{video_quality_settings['height']}, " \
+              f"JPEG质量: {video_quality_settings['jpegQuality']}, " \
+              f"跳帧率: {video_quality_settings['frameSkip']}")
+        
+        # 广播视频质量更新消息给所有客户端
+        socketio.emit('video_quality_updated', video_quality_settings)
+        
+        # 返回成功响应
+        return {'success': True, 'message': '视频质量设置已更新'}
+    except Exception as e:
+        print(f"[视频设置] 更新画质设置失败: {str(e)}")
+        return {'success': False, 'message': f'更新画质设置失败: {str(e)}'}
+
+@bp.route('/stream/<filename>')
+@login_required
+def stream_video(filename):
+    """流式播放视频文件（提供视频流而不是下载）"""
+    try:
+        filename = secure_filename(filename)
+        
+        # 首先尝试从处理结果文件夹获取
+        file_path = os.path.join(RESULT_FOLDER, filename)
+        if not os.path.exists(file_path):
+            # 如果不存在，尝试从原始视频文件夹获取
+            file_path = os.path.join(BaseConfig.VIDEO_SAVE_DIR, filename)
+            if not os.path.exists(file_path):
+                return jsonify({"error": "文件不存在"}), 404
+        
+        # 获取文件大小
+        file_size = os.path.getsize(file_path)
+        
+        # 处理范围请求
+        range_header = request.headers.get('Range', None)
+        byte1, byte2 = 0, None
+        
+        if range_header:
+            match = re.search(r'bytes=(\d+)-(\d*)', range_header)
+            if match:
+                groups = match.groups()
+                byte1 = int(groups[0]) if groups[0] else 0
+                byte2 = int(groups[1]) if groups[1] else file_size - 1
+        
+        # 增加分块大小（4MB），提高流媒体传输效率
+        chunk_size = 4 * 1024 * 1024
+        if not byte2:
+            byte2 = min(byte1 + chunk_size, file_size - 1)
+        
+        # 计算实际需要读取的长度
+        length = byte2 - byte1 + 1
+        
+        # 创建响应
+        def generate():
+            with open(file_path, 'rb') as f:
+                f.seek(byte1)
+                data = f.read(length)
+                yield data
+
+        # 确定MIME类型
+        mime_type = 'video/mp4'
+        if filename.endswith('.webm'):
+            mime_type = 'video/webm'
+        elif filename.endswith('.avi'):
+            mime_type = 'video/x-msvideo'
+        elif filename.endswith('.mov'):
+            mime_type = 'video/quicktime'
+        
+        response = Response(
+            generate(),
+            206,  # Partial Content
+            mimetype=mime_type,
+            direct_passthrough=True
+        )
+        
+        # 设置响应头，优化流媒体传输
+        response.headers.add('Content-Range', f'bytes {byte1}-{byte2}/{file_size}')
+        response.headers.add('Accept-Ranges', 'bytes')
+        response.headers.add('Content-Length', str(length))
+        # 优化缓存设置，允许浏览器对视频进行充分缓冲
+        response.headers.add('Cache-Control', 'public, max-age=3600')
+        # 添加额外的优化头
+        response.headers.add('X-Content-Type-Options', 'nosniff')
+        response.headers.add('Connection', 'keep-alive')
+        # 设置视频内容处理
+        response.headers.add('Content-Disposition', f'inline; filename="{filename}"')
+        # 添加允许的跨域请求头
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Range, Accept-Ranges, Content-Type')
+        
+        return response
+    except Exception as e:
+        print(f"[视频流播放错误] {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"流式播放失败: {str(e)}"}), 500
 

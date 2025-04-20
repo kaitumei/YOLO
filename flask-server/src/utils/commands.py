@@ -1,3 +1,5 @@
+# 后台管理人员初始角色生成
+
 import click
 from src.utils.exts import db
 from ..blueprints.common.models import PermissionEnum

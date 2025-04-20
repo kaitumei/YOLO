@@ -43,12 +43,12 @@ def draw_text_pil(img, text, pos, font_size=24, text_color=(255, 255, 255), bg_c
             for font_path in font_candidates:
                 if os.path.exists(font_path):
                     font = ImageFont.truetype(font_path, font_size)
-                    print(f"使用字体: {font_path}")
+                    # print(f"使用字体: {font_path}")  # 注释掉打印信息
                     break
             else:
                 # 如果找不到中文字体，使用默认字体
                 font = ImageFont.load_default()
-                print("使用默认字体，可能不支持中文")
+                # print("使用默认字体，可能不支持中文")  # 注释掉打印信息
     except Exception as e:
         print(f"加载字体失败: {e}，使用默认字体")
         font = ImageFont.load_default()

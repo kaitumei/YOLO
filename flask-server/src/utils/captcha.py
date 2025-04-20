@@ -1,6 +1,4 @@
-"""
-验证码工具类
-"""
+# 验证码辅助工具
 import random
 import string
 

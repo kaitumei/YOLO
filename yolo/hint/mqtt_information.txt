@@ -1,0 +1,9 @@
+ 服务器信息：
+- 名称:  Alarm
+- 服务器地址: mqtt://117.72.120.52
+- 端口: 1883
+- Client ID: mqttx_1125f4ce
+
+主题：alarm/command
+
+检测到illegal_parkin、accident、overspeed发送内容对应字段到mqtt

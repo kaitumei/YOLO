@@ -1,3 +1,5 @@
+# 环境配置 
+
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -61,12 +63,14 @@ class BaseConfig:
     ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png'}
 
     VIDEO_SAVE_DIR = os.path.join(BASE_DIR, 'media', 'videos')
-    
-    # Node.js服务器静态文件目录路径
-    # NODE_SERVER_STATIC_PATH = os.path.join(BASE_DIR, 'docker/node/static/images')
-    
-    # WeChat服务器静态文件目录路径(已有配置，这里注释作对比)
-    # WECHAT_SERVER_STATIC_PATH = os.path.join(BASE_DIR, 'weixin/server/static/images')
+
+    # 事故监控短信通知配置
+    SMS_ENABLED = os.environ.get('SMS_ENABLED', 'false').lower() == 'true'  # 是否启用短信功能
+    ACCIDENT_NOTIFY_NUMBERS = [
+        phone.strip() for phone in os.environ.get('ACCIDENT_NOTIFY_NUMBERS', '').split(',')
+        if phone.strip()
+    ]  # 事故发生时需要通知的手机号码列表，多个号码用逗号分隔
+
 
 class DevelopmentConfig(BaseConfig):
     """
@@ -87,6 +91,7 @@ class YoloBaseConfig(object):
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
+    # YOLO路径
     URL = os.environ.get('YOLO_URL', 'http://127.0.0.1:5001')  # 从环境变量获取YOLO服务器地址
 
 

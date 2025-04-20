@@ -1,527 +1,18 @@
 {% extends "common/front_base.html" %}
-{% block title %}AI实时监控平台{% endblock %}
+{% block title %}【HorizonSafe 界安】- AI实时监控平台{% endblock %}
 {% block css %}
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
     <script src="https://api.map.baidu.com/api?type=webgl&v=1.0&ak=NiHKtaxt5JnN2k3bqpb3xzbO9DoiGDIq"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='check/css/monitor.css') }}">
-    <style>
-        /* 修改画布容器大小 */
-        #video-container {
-            width: 85%;
-            margin: 0 auto;
-            position: relative;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        #videoFeedCanvas {
-            width: 100%;
-            display: block;
-        }
-        
-        /* 修改地图缩略图样式 */
-        #map-thumbnail {
-            margin: 0;
-            padding: 2px;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: absolute;
-            width: 100px;
-            height: 75px;
-            top: 10px;
-            right: 10px;
-            z-index: 100;
-            float: none;
-        }
-
-        #map-thumbnail-container {
-            width: 100%;
-            height: 100%;
-            border-radius: 3px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .map-thumbnail-title {
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 2px 5px;
-            border-radius: 2px;
-            font-size: 10px;
-            z-index: 1001;
-        }
-
-        .map-thumbnail-close {
-            position: absolute;
-            top: 3px;
-            right: 3px;
-            width: 16px;
-            height: 16px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 50%;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1001;
-            transition: all 0.2s ease;
-            font-size: 12px;
-        }
-
-        #map-thumbnail:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        #map-thumbnail.expanded {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 80%;
-            height: 80%;
-            z-index: 1000;
-            background: #fff;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            float: none;
-            margin-right: 0;
-        }
-
-        #map-thumbnail.expanded #map-thumbnail-container {
-            height: calc(100% - 40px);
-        }
-
-        .map-thumbnail-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            display: none;
-        }
-
-        .map-thumbnail-overlay.active {
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            #map-thumbnail-container {
-                height: 150px;
-            }
-            
-            #map-thumbnail.expanded {
-                width: 95%;
-                height: 70%;
-            }
-        }
-        
-        /* 添加响应式设计样式 */
-        @media (max-width: 768px) {
-            .dashboard-container {
-                padding: 10px;
-            }
-            
-            #video-container, #detection-panel, .control-group, #status-bar {
-                width: 95%;
-            }
-            
-            #video-container {
-                margin-bottom: 15px;
-            }
-            
-            .control-group {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            
-            .btn {
-                margin: 0.5rem;
-                flex: 1 0 40%;
-            }
-            
-            .page-title {
-                font-size: 1.5rem;
-            }
-        }
-        
-        /* 添加加载动画 - 优化版 */
-        .loading-indicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            display: none;
-            z-index: 100;
-            background-color: rgba(0, 0, 0, 0.7);
-            padding: 25px;
-            border-radius: 12px;
-            color: white;
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-        }
-        
-        .loading-indicator.active {
-            display: flex !important;
-            flex-direction: column;
-            align-items: center;
-            animation: fadeIn 0.3s ease forwards;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-        
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top: 3px solid #3498db;
-            border-right: 3px solid transparent;
-            width: 50px;
-            height: 50px;
-            margin: 0 auto 15px;
-            animation: spin 1s linear infinite;
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
-        }
-        
-        .loading-indicator p {
-            font-size: 16px;
-            font-weight: 500;
-            margin: 5px 0 0;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-        }
-        
-        .loading-indicator .loading-text:after {
-            content: '...';
-            animation: loadingDots 1.5s infinite;
-            display: inline-block;
-            width: 20px;
-            text-align: left;
-        }
-        
-        @keyframes loadingDots {
-            0% { content: '.'; }
-            33% { content: '..'; }
-            66% { content: '...'; }
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* 添加通知样式 */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 15px;
-            border-radius: 4px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            max-width: 300px;
-            animation: slide-in 0.3s ease-out;
-            color: white;
-        }
-        
-        .notification.info {
-            background-color: #3498db;
-            border-left: 4px solid #2980b9;
-        }
-        
-        .notification.warning {
-            background-color: #f39c12;
-            border-left: 4px solid #d35400;
-        }
-        
-        .notification.error {
-            background-color: #e74c3c;
-            border-left: 4px solid #c0392b;
-        }
-        
-        .notification h4 {
-            margin: 0 0 5px 0;
-            font-weight: bold;
-        }
-        
-        .notification p {
-            margin: 0;
-            font-size: 0.9rem;
-        }
-        
-        .notification.fade-out {
-            animation: fade-out 0.5s ease-out forwards;
-        }
-        
-        @keyframes slide-in {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        @keyframes fade-out {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        
-        /* 录制按钮样式 */
-        .btn-recording {
-            background-color: #e74c3c;
-            animation: pulse 1.5s infinite;
-        }
-        
-        .recording-time {
-            margin-left: 5px;
-            font-family: monospace;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-        
-        /* 更多检测结果指示器样式 */
-        .more-indicator {
-            background-color: #f8f9fa;
-            text-align: center;
-            color: #666;
-            padding: 8px;
-            font-style: italic;
-            border-left: 4px solid #aaa;
-        }
-        
-        /* 帮助提示样式 */
-        .help-tip {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            max-width: 300px;
-        }
-        
-        .help-tip p {
-            margin: 0 0 10px 0;
-            font-weight: bold;
-        }
-        
-        .help-tip ul {
-            margin: 0;
-            padding: 0 0 0 20px;
-        }
-        
-        .help-tip li {
-            margin-bottom: 5px;
-        }
-        
-        .help-tip kbd {
-            background-color: #f8f9fa;
-            border: 1px solid #d3d3d3;
-            border-radius: 3px;
-            box-shadow: 0 1px 1px rgba(0, 0, 0, .2);
-            color: #333;
-            display: inline-block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            line-height: 1;
-            padding: 3px 5px;
-            margin-right: 5px;
-        }
-        
-        .close-tip {
-            background: #3498db;
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 0.9rem;
-        }
-        
-        .close-tip:hover {
-            background: #2980b9;
-        }
-        
-        /* 重连按钮样式 */
-        .btn-small {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin-left: 10px;
-        }
-        
-        /* 简化进度条样式 */
-        .progress-container {
-            width: 100%;
-            background-color: #f1f1f1;
-            border-radius: 4px;
-            margin: 10px 0;
-            overflow: hidden;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 20px;
-            background-color: #4CAF50;
-            text-align: center;
-            line-height: 20px;
-            color: white;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        /* 录制指示器样式 */
-        .recording-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: red;
-            border-radius: 50%;
-            margin-right: 5px;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
-
-        .size-display {
-            font-size: 0.8rem;
-            margin-left: 5px;
-        }
-
-        .map-thumbnail-close:hover {
-            background: rgba(0, 0, 0, 0.8);
-            transform: scale(1.1);
-        }
-
-        /* 修改页面整体布局 */
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-
-        .page-title {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        /* 修改检测结果面板 */
-        #detection-panel {
-            width: 85%;
-            margin: 20px auto;
-            background: #fff;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        #detection-panel h2 {
-            font-size: 1.4rem;
-            margin-bottom: 15px;
-            color: #333;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-
-        /* 修改控制按钮组 */
-        .control-group {
-            width: 85%;
-            margin: 15px auto;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        /* 修改状态栏 */
-        #status-bar {
-            width: 85%;
-            margin: 10px auto;
-            display: flex;
-            justify-content: space-between;
-            background: #f8f9fa;
-            padding: 8px 15px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-
-        /* 添加摄像头按钮样式 */
-        .btn-camera-off {
-            background-color: #6c757d;
-        }
-        
-        /* 按钮禁用时的样式 */
-        .btn:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-        }
-        
-        /* 加载中的按钮样式 */
-        .btn-loading {
-            position: relative;
-            color: transparent !important;
-        }
-        
-        .btn-loading::after {
-            content: '';
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            top: calc(50% - 8px);
-            left: calc(50% - 8px);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s infinite linear;
-        }
-        
-        /* 监控开关相关样式 */
-        .monitor-switch-container {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .monitor-switch-btn {
-            font-size: 1.1rem;
-            padding: 10px 20px;
-        }
-        
-        .monitor-status {
-            margin-top: 10px;
-            font-weight: bold;
-            color: #e74c3c;
-        }
-    </style>
 {% endblock %}
 {% block content %}
      <main class="dashboard-container">
         <h1 class="page-title">AI实时监控平台</h1>
 
-        <!-- 添加监控开关按钮 -->
+        <!-- 监控开关按钮 -->
         <div class="monitor-switch-container" data-monitoring-active="{% if monitoring_active %}true{% else %}false{% endif %}">
             <button id="monitor-switch-btn" class="btn btn-danger monitor-switch-btn" type="button">
                 <i class="fas fa-power-off"></i> 
@@ -530,45 +21,111 @@
             <div id="monitor-status" class="monitor-status">
                 监控当前已关闭
             </div>
+            <span class="reset-settings" id="reset-settings"><i class="fas fa-undo-alt fa-sm"></i> 重置已保存的设置</span>
         </div>
 
-        <section id="video-container" aria-label="实时视频监控区域">
-            <canvas id="videoFeedCanvas" role="img" aria-label="实时视频画面"></canvas>
-            <div class="loading-indicator" id="loadingIndicator">
-                <div class="spinner" role="status">
-                    <span class="visually-hidden">正在加载，请稍候...</span>
+        <!-- 主内容区布局 -->
+        <div class="main-content-wrapper">
+            <section id="video-container" aria-label="实时视频监控区域">
+                <canvas id="videoFeedCanvas" role="img" aria-label="实时视频画面"></canvas>
+                <div class="loading-indicator" id="loadingIndicator">
+                    <div class="spinner" role="status">
+                        <span class="visually-hidden">正在加载，请稍候...</span>
+                    </div>
+                    <p class="loading-text">正在连接</p>
                 </div>
-                <p class="loading-text">正在连接</p>
-            </div>
-            
-            <!-- 地图缩略图移动到视频容器内部 -->
-            <section id="map-thumbnail" aria-label="地图缩略图">
-                <div class="map-thumbnail-title">地图视图</div>
-                <div class="map-thumbnail-close" aria-label="关闭地图">×</div>
-                <div id="map-thumbnail-container"></div>
+                
+                <!-- 地图缩略图 -->
+                <section id="map-thumbnail" aria-label="地图缩略图">
+                    <div class="map-thumbnail-title"><i class="fas fa-map-marker-alt"></i> 地图视图</div>
+                    <div class="map-thumbnail-close" aria-label="关闭地图"><i class="fas fa-times"></i></div>
+                    <div id="map-thumbnail-container"></div>
+                </section>
+                <div class="map-thumbnail-overlay"></div>
             </section>
-            <div class="map-thumbnail-overlay"></div>
-        </section>
 
-        <section id="detection-panel" aria-label="检测结果面板">
-             <h2>检测结果</h2>
-             <div class="detection-list" id="detections-container"></div>
-        </section>
+            <section id="detection-panel" aria-label="检测结果面板">
+                 <h2><i class="fas fa-search"></i> 检测结果</h2>
+                 
+                 <!-- 添加标签页切换 -->
+                 <div class="panel-tabs">
+                    <button class="tab-btn active" data-target="live-detections"><i class="fas fa-camera"></i> 实时检测</button>
+                    <button class="tab-btn" data-target="history-detections"><i class="fas fa-history"></i> 历史记录</button>
+                    <button class="tab-btn" data-target="accident-detections"><i class="fas fa-car-crash"></i> 事故捕捉</button>
+                 </div>
+                 
+                 <!-- 实时检测内容 -->
+                 <div class="tab-content active" id="live-detections">
+                    <div class="detection-list" id="detections-container"></div>
+                 </div>
+                 
+                 <!-- 历史记录内容 -->
+                 <div class="tab-content" id="history-detections">
+                    <div class="history-actions">
+                        <button id="refresh-history" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                    </div>
+                    <div class="detection-list" id="history-container">
+                        <div class="loading-history">加载历史记录中...</div>
+                    </div>
+                 </div>
+                 
+                 <!-- 事故捕捉内容 -->
+                 <div class="tab-content" id="accident-detections">
+                    <div class="history-actions">
+                        <button id="refresh-accidents" class="btn btn-sm btn-secondary">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                        <button id="clear-accidents" class="btn btn-sm btn-danger ml-2">
+                            <i class="fas fa-trash-alt"></i> 清空
+                        </button>
+                    </div>
+                    <div class="detection-list" id="accidents-container">
+                        <div class="no-history">等待事故检测...</div>
+                    </div>
+                 </div>
+            </section>
+        </div>
 
         <footer id="status-bar">
-            <div class="status-item">
+            <div class="status-item disconnected">
                 <span class="status-indicator"></span>
-                <span id="connection-status">连接中...</span>
+                <span id="connection-status">断开连接</span>
             </div>
             <div class="status-item">
-                <span>帧率: </span>
+                <i class="fas fa-tachometer-alt"></i>
                 <span id="fps-counter">0 FPS</span>
+            </div>
+            <div class="status-item">
+                <span id="quality-indicator">视频质量: 高</span>
+                <div class="quality-selector">
+                    <select id="quality-selector" aria-label="选择视频质量">
+                        <option value="HIGH">高清 (1280x720)</option>
+                        <option value="MEDIUM">中等 (854x480)</option>
+                        <option value="LOW">低清 (640x360)</option>
+                    </select>
+                    <span class="help-text">快捷键: Alt+1/2/3</span>
+                </div>
+            </div>
+            <div class="status-item">
+                <span id="frameskip-indicator">跳帧率: 3</span>
+                <div class="quality-selector">
+                    <select id="frameskip-selector" aria-label="选择跳帧率">
+                        <option value="1">精细 (1)</option>
+                        <option value="3" selected>平衡 (3)</option>
+                        <option value="5">快速 (5)</option>
+                        <option value="7">极速 (7)</option>
+                    </select>
+                    <span class="help-text">较高值=更高FPS</span>
+                </div>
             </div>
         </footer>
 
+        <!-- 控制按钮组 -->
         <div class="control-group" aria-label="视频控制">
             <button class="btn btn-primary" id="pause-resume-btn" aria-label="暂停/继续监控视频" type="button">
-                <i class="fas fa-pause" aria-hidden="true"></i> 暂停
+                <i class="fas fa-pause" aria-hidden="true"></i> <span class="btn-text">暂停</span>
             </button>
             <button class="btn btn-secondary" id="capture-btn" aria-label="截图" type="button">
                 <i class="fas fa-camera" aria-hidden="true"></i> 截图
@@ -591,7 +148,28 @@
             MAX_RECONNECTION_ATTEMPTS: Infinity,
             RECONNECTION_DELAY: 3000,
             IMAGE_QUALITY: 0.8,  // 图像质量设置
-            MAX_DETECTIONS_DISPLAY: 10  // 最大显示的检测结果数量
+            MAX_DETECTIONS_DISPLAY: 10,  // 最大显示的检测结果数量
+            MAX_ACCIDENT_CAPTURES: 20,   // 最大保存的事故捕捉数量
+            ACCIDENT_CLASS_NAMES: ['accident', 'car accident', 'traffic accident', '事故车', '事故', 'accident car'], // 扩展事故类别名称
+            VIDEO_QUALITY: {
+                HIGH: {
+                    width: 1280,
+                    height: 720,
+                    jpegQuality: 0.9
+                },
+                MEDIUM: {
+                    width: 854,
+                    height: 480,
+                    jpegQuality: 0.8
+                },
+                LOW: {
+                    width: 640,
+                    height: 360,
+                    jpegQuality: 0.7
+                }
+            },
+            // 默认使用高质量视频
+            CURRENT_QUALITY: 'HIGH'
         };
         
         const socket = io(CONFIG.SERVER_URL, {
@@ -606,11 +184,27 @@
         // 添加监控状态变量，默认为关闭状态
         let monitoringActive = document.querySelector('.monitor-switch-container').dataset.monitoringActive === 'true';
         
+        // 尝试从localStorage读取保存的设置
+        const savedMonitoringState = localStorage.getItem('monitoringActive');
+        if (savedMonitoringState !== null) {
+            monitoringActive = savedMonitoringState === 'true';
+            console.log('从localStorage恢复监控状态:', monitoringActive);
+        }
+        
         // 摄像头状态与监控状态保持一致
         let isCameraOn = monitoringActive;
 
         const canvas = document.getElementById('videoFeedCanvas');
+        // 设置更高的canvas分辨率以提高清晰度
+        canvas.width = 1280;  
+        canvas.height = 720;
         const ctx = canvas.getContext('2d');
+        // 设置图像平滑选项为false，保持图像锐度
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
+        ctx.oImageSmoothingEnabled = false;
         let img = new Image();
         let pendingFrame = null;
         let frameCount = 0;
@@ -631,6 +225,9 @@
         let frameQueue = [];
         let isProcessingFrame = false;
         const MAX_QUEUE_SIZE = 3;  // 最大队列大小
+
+        // 事故捕捉数组
+        let accidentCaptures = [];
 
         function updateConnectionStatus(connected) {
             const statusElem = document.getElementById('connection-status');
@@ -833,7 +430,33 @@
             // 如果监控默认关闭，隐藏加载指示器
             if (!monitoringActive) {
                 document.getElementById('loadingIndicator').classList.remove('active');
+            } else {
+                // 如果监控是开启状态，通知服务器
+                socket.emit('toggle_monitoring', { active: monitoringActive });
+                // 开启摄像头
+                socket.emit('client_camera_on');
+                showNotification('已恢复设置', '已从上次的设置中恢复监控状态', 'info');
             }
+            
+            // 延迟加载事故记录，避免与其他初始化冲突
+            setTimeout(fetchAccidentCaptures, 2000);
+            
+            // 增加Socket事件监听调试
+            console.log('[初始化] 添加Socket.IO事件监听器');
+            
+            // 向服务器请求当前状态
+            if (socket && socket.connected) {
+                console.log('[初始化] Socket已连接，发送状态请求');
+                socket.emit('get_status');
+            } else {
+                console.log('[初始化] Socket尚未连接，等待连接后发送状态请求');
+            }
+        });
+
+        // 添加页面关闭前的保存功能
+        window.addEventListener('beforeunload', function() {
+            // 确保当前设置被保存
+            localStorage.setItem('monitoringActive', monitoringActive);
         });
 
         // 改进的视频流恢复函数
@@ -864,7 +487,45 @@
             window.currentStreamTimeout = streamTimeout;
         }
 
-        // 改进的帧处理函数，在收到第一帧时清除视频恢复超时
+        // 检查是否有事故类别的检测结果 - 改进匹配逻辑
+        function checkForAccident(detections) {
+            console.log('[事故检测] 检查检测结果:', detections);
+            
+            // 确保detections是一个数组
+            if (!Array.isArray(detections)) {
+                console.log('[事故检测] 检测结果不是数组');
+                return false;
+            }
+            
+            // 遍历所有检测结果
+            for (const detection of detections) {
+                // 获取类别名称，可能存在于不同字段
+                const className = (detection.class || detection.class_name || detection.name || detection.type || '').toLowerCase();
+                console.log('[事故检测] 检查对象类别:', className, '置信度:', detection.confidence);
+                
+                // 检查是否匹配事故类别
+                const isAccident = CONFIG.ACCIDENT_CLASS_NAMES.some(accidentClass => 
+                    className.includes(accidentClass.toLowerCase())
+                );
+                
+                if (isAccident) {
+                    console.log('[事故检测] 检测到事故车:', className, '置信度:', detection.confidence);
+                    return true;
+                }
+                
+                // 有些模型可能将类别信息存储在嵌套结构中
+                if (detection.detections && Array.isArray(detection.detections)) {
+                    console.log('[事故检测] 检查嵌套检测结果');
+                    if (checkForAccident(detection.detections)) {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+        
+        // 修改的帧处理函数，增加事故检测调试信息
         socket.on('update_frame', async (data) => {
             // 如果监控未开启，忽略所有帧数据
             if (!monitoringActive) return;
@@ -896,6 +557,26 @@
 
                 // 处理检测结果
                 if (data.detections && Array.isArray(data.detections)) {
+                    console.log('[事故检测] 收到检测结果:', data.detections);
+                    
+                    // 将检测结果发送给服务器进行分析
+                    if (monitoringActive && data.image) {
+                        // 防抖发送，避免过多请求
+                        clearTimeout(window.detectionTimeout);
+                        window.detectionTimeout = setTimeout(() => {
+                            socket.emit('update_detections', {
+                                detections: data.detections,
+                                image: data.image
+                            });
+                        }, 500);
+                    }
+                    
+                    // 本地检查是否有事故类别的检测结果（保留本地检测功能）
+                    if (data.image && checkForAccident(data.detections)) {
+                        console.log('[事故检测] 本地确认检测到事故车，开始捕获');
+                        captureAccident(data.image, data.detections);
+                    }
+                    
                     // 使用防抖函数更新检测信息，避免过于频繁的DOM更新
                     debounce(() => updateDetectionInfo(data.detections, true), 100)();
                     currentFrame = data;
@@ -922,6 +603,352 @@
             }
         });
         
+        // 捕获事故帧并保存
+        function captureAccident(imageData, detections) {
+            try {
+                console.log('[事故捕捉] 开始捕获事故');
+                
+                // 创建事故捕捉对象
+                const accidentCapture = {
+                    id: Date.now().toString(),  // 使用时间戳作为ID
+                    timestamp: new Date(),
+                    image: imageData,
+                    detections: detections
+                };
+                
+                // 添加到事故捕捉数组
+                accidentCaptures.unshift(accidentCapture);
+                console.log('[事故捕捉] 添加到本地数组，当前长度:', accidentCaptures.length);
+                
+                // 限制数组大小
+                if (accidentCaptures.length > CONFIG.MAX_ACCIDENT_CAPTURES) {
+                    accidentCaptures.pop();
+                }
+                
+                // 更新事故捕捉UI
+                updateAccidentCaptures();
+                
+                // 显示通知
+                showNotification('检测到事故', '已捕获事故画面', 'warning');
+                
+                // 自动切换到事故捕捉标签页 - 只在首次捕获时切换
+                if (document.querySelector('.tab-btn[data-target="accident-detections"]') && 
+                    !document.querySelector('.tab-btn[data-target="accident-detections"]').classList.contains('active')) {
+                    console.log('[事故捕捉] 切换到事故捕捉标签页');
+                    document.querySelector('.tab-btn[data-target="accident-detections"]').click();
+                }
+                
+                // 立即保存到服务器，不使用队列
+                console.log('[事故捕捉] 发送数据到服务器');
+                
+                // 处理可能的图像数据问题
+                if (!imageData || imageData.length === 0) {
+                    console.error('[事故捕捉] 错误: 图像数据为空');
+                    showNotification('捕获失败', '图像数据为空，无法保存到服务器', 'error');
+                    return;
+                }
+                
+                socket.emit('save_accident', { 
+                    image: imageData, 
+                    detections: detections,
+                    id: accidentCapture.id,
+                    timestamp: accidentCapture.timestamp.toISOString()
+                });
+                
+                // 监听保存结果
+                socket.once('accident_saved', function(response) {
+                    console.log('[事故捕捉] 服务器保存成功:', response);
+                    // 更新本地记录的ID为服务器生成的ID
+                    if (response.id) {
+                        const index = accidentCaptures.findIndex(c => c.id === accidentCapture.id);
+                        if (index !== -1) {
+                            accidentCaptures[index].id = response.id;
+                            accidentCaptures[index].saved = true;
+                        }
+                    }
+                });
+                
+                socket.once('accident_save_error', function(error) {
+                    console.error('[事故捕捉] 服务器保存失败:', error);
+                    showNotification('保存失败', `事故记录保存到服务器失败: ${error.message}`, 'error');
+                });
+                
+                console.log('[事故捕捉] 捕获流程结束');
+                
+            } catch (error) {
+                console.error('[事故捕捉] 捕获过程出错:', error);
+                showNotification('捕获出错', '事故捕捉过程中发生错误', 'error');
+            }
+        }
+        
+        // 更新事故捕捉UI
+        function updateAccidentCaptures() {
+            const container = document.getElementById('accidents-container');
+            
+            // 如果没有事故捕捉，显示提示
+            if (accidentCaptures.length === 0) {
+                container.innerHTML = '<div class="no-history">等待事故检测...</div>';
+                return;
+            }
+            
+            // 清空容器
+            container.innerHTML = '';
+            
+            // 添加事故捕捉
+            accidentCaptures.forEach(capture => {
+                const accidentItem = document.createElement('div');
+                accidentItem.className = 'history-item accident-item';
+                accidentItem.setAttribute('data-id', capture.id);
+                
+                // 格式化时间
+                const captureTime = new Date(capture.timestamp);
+                const formattedTime = captureTime.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                // 创建时间标签
+                const timeElement = document.createElement('div');
+                timeElement.className = 'history-time';
+                timeElement.innerHTML = `<i class="fas fa-exclamation-triangle text-danger"></i> 事故捕捉 - ${formattedTime}`;
+                accidentItem.appendChild(timeElement);
+                
+                // 创建检测结果列表
+                const detectionsList = document.createElement('div');
+                detectionsList.className = 'detection-details';
+                
+                let detections = capture.detections;
+                if (Array.isArray(detections)) {
+                    detections.slice(0, 5).forEach(detection => {
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'detection-item';
+                        
+                        // 高亮显示事故类别
+                        const className = detection.class || '未知类别';
+                        const isAccident = CONFIG.ACCIDENT_CLASS_NAMES.includes(className.toLowerCase());
+                        
+                        // 获取置信度
+                        const confidence = detection.confidence || 0;
+                        const confidencePercent = Math.round(confidence * 100);
+                        
+                        itemElement.innerHTML = `
+                            <span class="detection-class ${isAccident ? 'text-danger' : ''}">${className}</span>
+                            <span class="detection-confidence">${confidencePercent}%</span>
+                        `;
+                        
+                        if (isAccident) {
+                            itemElement.classList.add('accident-detection');
+                        }
+                        
+                        detectionsList.appendChild(itemElement);
+                    });
+                }
+                
+                accidentItem.appendChild(detectionsList);
+                
+                // 添加图像
+                if (capture.image) {
+                    const imageElement = document.createElement('img');
+                    imageElement.className = 'history-image';
+                    imageElement.src = `data:image/jpeg;base64,${capture.image}`;
+                    imageElement.alt = '事故捕捉图像';
+                    imageElement.addEventListener('click', () => {
+                        // 显示大图
+                        showLargeImage(capture.image);
+                    });
+                    accidentItem.appendChild(imageElement);
+                }
+                
+                // 添加操作按钮
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'accident-actions';
+                
+                // 下载按钮
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'btn btn-sm btn-secondary';
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i> 下载';
+                downloadBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    downloadAccidentImage(capture);
+                });
+                
+                // 删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger ml-2';
+                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i> 删除';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteAccidentCapture(capture.id);
+                });
+                
+                actionsContainer.appendChild(downloadBtn);
+                actionsContainer.appendChild(deleteBtn);
+                accidentItem.appendChild(actionsContainer);
+                
+                container.appendChild(accidentItem);
+            });
+        }
+        
+        // 下载事故图像
+        function downloadAccidentImage(capture) {
+            const a = document.createElement('a');
+            a.href = `data:image/jpeg;base64,${capture.image}`;
+            
+            // 格式化时间为文件名
+            const timestamp = new Date(capture.timestamp)
+                .toISOString()
+                .replace(/:/g, '-')
+                .replace(/\..+/, '');
+            
+            a.download = `事故捕捉_${timestamp}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        
+        // 删除事故捕捉
+        function deleteAccidentCapture(id) {
+            if (confirm('确定要删除这条事故记录吗？')) {
+                // 从数组中删除
+                accidentCaptures = accidentCaptures.filter(capture => capture.id !== id);
+                
+                // 更新UI
+                updateAccidentCaptures();
+                
+                // 显示通知
+                showNotification('已删除', '事故记录已删除', 'info');
+            }
+        }
+        
+        // 添加事故捕捉相关CSS样式
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                .accident-item {
+                    border-left: 3px solid #e74c3c;
+                    background-color: rgba(231, 76, 60, 0.05);
+                }
+                
+                .accident-detection {
+                    background-color: rgba(231, 76, 60, 0.1);
+                    border-left: 3px solid #e74c3c;
+                }
+                
+                .accident-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-top: 10px;
+                }
+                
+                .ml-2 {
+                    margin-left: 0.5rem;
+                }
+                
+                .text-danger {
+                    color: #e74c3c;
+                    font-weight: bold;
+                }
+            </style>
+        `);
+        
+        // 清空事故捕捉按钮事件
+        document.getElementById('clear-accidents').addEventListener('click', function() {
+            if (confirm('确定要清空所有事故记录吗？这将同时清空服务器和本地存储的记录。')) {
+                // 先清空本地记录
+                accidentCaptures = [];
+                updateAccidentCaptures();
+                
+                // 再清空服务器记录
+                fetch('/check/api/accident_captures/clear', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showNotification('已清空', '所有事故记录已清空', 'info');
+                    } else {
+                        showNotification('清空部分失败', `服务器记录清空失败: ${data.message}`, 'warning');
+                    }
+                })
+                .catch(error => {
+                    console.error('清空服务器记录失败:', error);
+                    showNotification('清空部分失败', '本地记录已清空，但服务器记录清空失败', 'warning');
+                });
+            }
+        });
+        
+        // 刷新事故捕捉按钮事件
+        document.getElementById('refresh-accidents').addEventListener('click', function() {
+            fetchAccidentCaptures();
+        });
+        
+        // 从服务器获取事故捕捉记录
+        function fetchAccidentCaptures() {
+            const container = document.getElementById('accidents-container');
+            container.innerHTML = '<div class="loading-history">加载事故记录中...</div>';
+            
+            fetch('/check/api/accident_captures')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络请求失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 合并服务器的记录与本地记录
+                        if (data.captures && data.captures.length > 0) {
+                            // 将服务器记录转换为本地格式
+                            const serverCaptures = data.captures.map(capture => {
+                                return {
+                                    id: capture.id,
+                                    timestamp: new Date(capture.timestamp),
+                                    image: capture.image || '',
+                                    detections: capture.detections,
+                                    file_url: capture.file_url
+                                };
+                            });
+                            
+                            // 更新本地记录（保留带有图像的本地记录）
+                            const localWithImages = accidentCaptures.filter(cap => cap.image && cap.image.length > 0);
+                            
+                            // 合并记录，避免重复
+                            const serverIds = new Set(serverCaptures.map(cap => cap.id));
+                            const uniqueLocal = localWithImages.filter(cap => !serverIds.has(cap.id));
+                            
+                            // 按时间排序合并后的记录
+                            accidentCaptures = [...serverCaptures, ...uniqueLocal].sort((a, b) => 
+                                new Date(b.timestamp) - new Date(a.timestamp));
+                                
+                            // 限制记录数量
+                            if (accidentCaptures.length > CONFIG.MAX_ACCIDENT_CAPTURES) {
+                                accidentCaptures = accidentCaptures.slice(0, CONFIG.MAX_ACCIDENT_CAPTURES);
+                            }
+                        }
+                        
+                        // 更新UI
+                        updateAccidentCaptures();
+                    } else {
+                        container.innerHTML = `<div class="no-history">加载失败: ${data.message || '未知错误'}</div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('获取事故记录失败:', error);
+                    container.innerHTML = `<div class="no-history">加载失败: ${error.message}</div>`;
+                    
+                    // 如果服务器请求失败，但有本地记录，仍然显示本地记录
+                    if (accidentCaptures.length > 0) {
+                        updateAccidentCaptures();
+                    }
+                });
+        }
+
         // 处理下一帧的函数
         function processNextFrame() {
             if (frameQueue.length === 0 || isPaused || !monitoringActive) {
@@ -952,7 +979,14 @@
                 
                 offscreenCanvas.width = img.width;
                 offscreenCanvas.height = img.height;
-                offscreenCtx.drawImage(img, 0, 0);
+                // 设置离屏画布的平滑选项为false，保持锐度
+                offscreenCtx.imageSmoothingEnabled = false;
+                offscreenCtx.webkitImageSmoothingEnabled = false;
+                offscreenCtx.mozImageSmoothingEnabled = false;
+                offscreenCtx.msImageSmoothingEnabled = false;
+                offscreenCtx.oImageSmoothingEnabled = false;
+                // 绘制图像
+                offscreenCtx.drawImage(img, 0, 0, img.width, img.height);
                 
                 requestAnimationFrame(() => {
                     // 再次检查监控状态
@@ -963,7 +997,14 @@
                     
                     canvas.width = offscreenCanvas.width;
                     canvas.height = offscreenCanvas.height;
-                    ctx.drawImage(offscreenCanvas, 0, 0);
+                    // 确保主画布上下文的平滑选项也设为false
+                    ctx.imageSmoothingEnabled = false;
+                    ctx.webkitImageSmoothingEnabled = false;
+                    ctx.mozImageSmoothingEnabled = false;
+                    ctx.msImageSmoothingEnabled = false;
+                    ctx.oImageSmoothingEnabled = false;
+                    // 绘制图像
+                    ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
                     frameCount++;
                     updateFps();
                     
@@ -1145,13 +1186,14 @@
         document.getElementById('pause-resume-btn').addEventListener('click', () => {
             isPaused = !isPaused;
             const btn = document.getElementById('pause-resume-btn');
+            const btnText = btn.querySelector('.btn-text');
 
             if (isPaused) {
-                btn.querySelector('.text').textContent = '恢复';
+                if (btnText) btnText.textContent = '恢复';
                 btn.classList.add('btn-paused');
                 showNotification('视频已暂停', '监控视频流已暂停', 'info');
             } else {
-                btn.querySelector('.text').textContent = '暂停';
+                if (btnText) btnText.textContent = '暂停';
                 btn.classList.remove('btn-paused');
                 
                 // 恢复时重新处理当前帧
@@ -1165,10 +1207,24 @@
                     img.onload = () => {
                         canvas.width = img.width;
                         canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0);
-                        updateDetectionInfo(currentFrame.detections, true);
+                        // 确保画布上下文的平滑选项为false
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.webkitImageSmoothingEnabled = false;
+                        ctx.mozImageSmoothingEnabled = false;
+                        ctx.msImageSmoothingEnabled = false;
+                        ctx.oImageSmoothingEnabled = false;
+                        // 绘制图像
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        if (currentFrame.detections && Array.isArray(currentFrame.detections)) {
+                            updateDetectionInfo(currentFrame.detections, true);
+                        }
                     };
                     img.src = imageUrl;
+                }
+                
+                // 如果帧队列不为空，重新开始处理
+                if (frameQueue.length > 0 && !isProcessingFrame) {
+                    processNextFrame();
                 }
             }
         });
@@ -1180,6 +1236,9 @@
             
             // 同时也切换摄像头状态
             isCameraOn = monitoringActive;
+            
+            // 保存监控状态到localStorage
+            localStorage.setItem('monitoringActive', monitoringActive);
             
             // 发送切换请求到服务器
             socket.emit('toggle_monitoring', { active: monitoringActive });
@@ -1197,6 +1256,7 @@
                         monitoringActive = false;
                         isCameraOn = false;
                         updateMonitoringStatus();
+                        localStorage.setItem('monitoringActive', false);
                     }
                 }, 10000); // 10秒超时
                 
@@ -1870,6 +1930,8 @@
         socket.on('monitoring_status', (data) => {
             console.log('收到监控状态更新:', data);
             monitoringActive = data.active;
+            // 同步保存到localStorage
+            localStorage.setItem('monitoringActive', monitoringActive);
             updateMonitoringStatus();
         });
         
@@ -1877,6 +1939,578 @@
         socket.on('monitoring_inactive', (data) => {
             console.log('监控未激活消息:', data);
             showNotification('监控未开启', '请先开启监控功能', 'warning');
+        });
+
+        // 添加重置设置的功能
+        document.getElementById('reset-settings').addEventListener('click', function() {
+            if (confirm('确定要重置监控设置吗？这将清除所有保存的监控首选项。')) {
+                // 清除localStorage中的设置
+                localStorage.removeItem('monitoringActive');
+                
+                // 重置为服务器默认状态
+                monitoringActive = document.querySelector('.monitor-switch-container').dataset.monitoringActive === 'true';
+                isCameraOn = monitoringActive;
+                
+                // 通知服务器
+                socket.emit('toggle_monitoring', { active: monitoringActive });
+                
+                // 更新UI
+                updateMonitoringStatus();
+                
+                // 如果摄像头应该开启，确保它开启
+                if (monitoringActive) {
+                    socket.emit('client_camera_on');
+                } else {
+                    socket.emit('client_camera_off');
+                    // 清空画布
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                
+                showNotification('设置已重置', '已恢复到系统默认设置', 'info');
+            }
+        });
+
+        // 添加历史记录相关CSS样式
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                .panel-tabs {
+                    display: flex;
+                    border-bottom: 1px solid #ddd;
+                    margin-bottom: 10px;
+                }
+                
+                .tab-btn {
+                    padding: 8px 12px;
+                    background: none;
+                    border: none;
+                    border-bottom: 2px solid transparent;
+                    cursor: pointer;
+                    font-weight: 500;
+                    color: #666;
+                    transition: all 0.3s;
+                }
+                
+                .tab-btn.active {
+                    color: #2196F3;
+                    border-bottom: 2px solid #2196F3;
+                }
+                
+                .tab-content {
+                    display: none;
+                }
+                
+                .tab-content.active {
+                    display: block;
+                }
+                
+                .history-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    margin-bottom: 10px;
+                }
+                
+                .history-item {
+                    border-bottom: 1px solid #eee;
+                    padding: 10px;
+                    margin-bottom: 5px;
+                }
+                
+                .history-time {
+                    font-size: 12px;
+                    color: #666;
+                    margin-bottom: 5px;
+                }
+                
+                .history-image {
+                    max-width: 100%;
+                    margin-top: 8px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                }
+                
+                .loading-history {
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                }
+                
+                .no-history {
+                    text-align: center;
+                    padding: 20px;
+                    color: #666;
+                    font-style: italic;
+                }
+            </style>
+        `);
+
+        // 添加标签页切换功能
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 移除所有标签页的active类
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // 添加当前标签页的active类
+                this.classList.add('active');
+                document.getElementById(this.dataset.target).classList.add('active');
+                
+                // 如果切换到历史记录标签页，则加载历史记录
+                if (this.dataset.target === 'history-detections') {
+                    loadDetectionHistory();
+                }
+            });
+        });
+        
+        // 加载检测历史记录
+        function loadDetectionHistory() {
+            const historyContainer = document.getElementById('history-container');
+            historyContainer.innerHTML = '<div class="loading-history">加载历史记录中...</div>';
+            
+            fetch('/check/api/detection_history')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('网络请求失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success' && data.history && data.history.length > 0) {
+                        // 清空容器
+                        historyContainer.innerHTML = '';
+                        
+                        // 添加历史记录
+                        data.history.forEach(record => {
+                            const historyItem = document.createElement('div');
+                            historyItem.className = 'history-item';
+                            
+                            // 格式化时间
+                            const recordTime = new Date(record.timestamp);
+                            const formattedTime = recordTime.toLocaleString('zh-CN', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit'
+                            });
+                            
+                            // 创建时间标签
+                            const timeElement = document.createElement('div');
+                            timeElement.className = 'history-time';
+                            timeElement.innerHTML = `<i class="far fa-clock"></i> ${formattedTime}`;
+                            historyItem.appendChild(timeElement);
+                            
+                            // 创建检测结果列表
+                            const detectionsList = document.createElement('div');
+                            detectionsList.className = 'detection-details';
+                            
+                            let detections = record.detections;
+                            // 处理不同格式的检测数据
+                            if (!Array.isArray(detections) && typeof detections === 'object') {
+                                detections = [detections];
+                            }
+                            
+                            if (Array.isArray(detections)) {
+                                detections.slice(0, 5).forEach(detection => {
+                                    // 检查检测结果格式
+                                    let items = detection;
+                                    if (detection.detections) {
+                                        items = detection.detections;
+                                    }
+                                    
+                                    if (!Array.isArray(items)) {
+                                        items = [items];
+                                    }
+                                    
+                                    items.slice(0, 3).forEach(item => {
+                                        const itemElement = document.createElement('div');
+                                        itemElement.className = 'detection-item';
+                                        
+                                        // 获取类名
+                                        const className = item.class_name || item.class || item.type || '未知对象';
+                                        
+                                        // 获取置信度
+                                        const confidence = item.confidence || item.conf || 0;
+                                        const confidencePercent = Math.round(confidence * 100);
+                                        
+                                        itemElement.innerHTML = `
+                                            <span class="detection-class">${className}</span>
+                                            <span class="detection-confidence">${confidencePercent}%</span>
+                                        `;
+                                        detectionsList.appendChild(itemElement);
+                                    });
+                                });
+                            }
+                            
+                            historyItem.appendChild(detectionsList);
+                            
+                            // 如果有图像，添加图像
+                            if (record.image) {
+                                const imageElement = document.createElement('img');
+                                imageElement.className = 'history-image';
+                                imageElement.src = `data:image/jpeg;base64,${record.image}`;
+                                imageElement.alt = '检测结果图像';
+                                imageElement.addEventListener('click', () => {
+                                    // 显示大图
+                                    showLargeImage(record.image);
+                                });
+                                historyItem.appendChild(imageElement);
+                            }
+                            
+                            historyContainer.appendChild(historyItem);
+                        });
+                    } else {
+                        historyContainer.innerHTML = '<div class="no-history">暂无历史记录</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取历史记录失败:', error);
+                    historyContainer.innerHTML = `<div class="no-history">加载失败: ${error.message}</div>`;
+                });
+        }
+        
+        // 显示大图
+        function showLargeImage(base64Image) {
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.className = 'image-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <img src="data:image/jpeg;base64,${base64Image}" alt="检测结果大图">
+                </div>
+            `;
+            
+            // 添加模态框样式
+            const modalStyle = document.createElement('style');
+            modalStyle.textContent = `
+                .image-modal {
+                    display: flex;
+                    position: fixed;
+                    z-index: 1000;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.9);
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .modal-content {
+                    position: relative;
+                    max-width: 90%;
+                    max-height: 90%;
+                }
+                
+                .modal-content img {
+                    max-width: 100%;
+                    max-height: 90vh;
+                    display: block;
+                    margin: 0 auto;
+                }
+                
+                .close-modal {
+                    position: absolute;
+                    top: -30px;
+                    right: 0;
+                    color: white;
+                    font-size: 28px;
+                    font-weight: bold;
+                    cursor: pointer;
+                }
+            `;
+            document.head.appendChild(modalStyle);
+            
+            // 添加到DOM
+            document.body.appendChild(modal);
+            
+            // 关闭模态框事件
+            modal.querySelector('.close-modal').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+            
+            // 点击空白处关闭
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+        
+        // 添加刷新历史记录按钮事件
+        document.getElementById('refresh-history').addEventListener('click', loadDetectionHistory);
+
+        // 监听服务器事故检测通知
+        socket.on('accident_detected', function(data) {
+            console.log('[事故通知] 收到服务器事故检测通知:', data);
+            
+            // 显示通知
+            showNotification('检测到事故', '系统自动检测到事故车辆', 'warning');
+            
+            // 刷新事故捕捉列表
+            fetchAccidentCaptures();
+            
+            // 自动切换到事故捕捉标签页
+            if (document.querySelector('.tab-btn[data-target="accident-detections"]') && 
+                !document.querySelector('.tab-btn[data-target="accident-detections"]').classList.contains('active')) {
+                console.log('[事故捕捉] 自动切换到事故捕捉标签页');
+                document.querySelector('.tab-btn[data-target="accident-detections"]').click();
+            }
+        });
+
+        // 根据当前选择的质量级别设置参数
+        function setVideoQuality(quality) {
+            CONFIG.CURRENT_QUALITY = quality;
+            const qualitySettings = CONFIG.VIDEO_QUALITY[quality];
+            
+            // 设置canvas分辨率
+            canvas.width = qualitySettings.width;
+            canvas.height = qualitySettings.height;
+            
+            // 更新UI以反映当前质量设置
+            document.getElementById('quality-indicator').textContent = `视频质量: ${quality}`;
+            
+            // 保存设置到localStorage
+            localStorage.setItem('videoQuality', quality);
+            
+            return qualitySettings;
+        }
+
+        // 从localStorage加载质量设置，或使用默认值
+        const savedQuality = localStorage.getItem('videoQuality') || 'HIGH';
+        setVideoQuality(savedQuality);
+
+        // 添加视频质量选择器事件处理
+        document.getElementById('quality-selector').addEventListener('change', function(e) {
+            const selectedQuality = e.target.value;
+            console.log(`正在切换视频质量到: ${selectedQuality}`);
+            
+            // 应用新的质量设置
+            const qualitySettings = setVideoQuality(selectedQuality);
+            
+            // 向服务器发送画质设置请求
+            socket.emit('set_video_quality', {
+                quality: selectedQuality,
+                width: qualitySettings.width,
+                height: qualitySettings.height,
+                jpegQuality: qualitySettings.jpegQuality
+            });
+            
+            // 如果当前正在查看视频流，显示质量变更提示
+            if (monitoringActive) {
+                showNotification('视频质量已更改', `视频质量已设置为: ${selectedQuality}`, 'info');
+            }
+        });
+
+        // 在页面加载时设置选择器的初始值
+        document.addEventListener('DOMContentLoaded', function() {
+            const qualitySelector = document.getElementById('quality-selector');
+            const savedQuality = localStorage.getItem('videoQuality') || 'HIGH';
+            qualitySelector.value = savedQuality;
+        });
+
+        // 监听服务器发来的视频质量更新消息
+        socket.on('video_quality_updated', function(settings) {
+            console.log('收到服务器视频质量更新:', settings);
+            
+            // 更新本地质量设置
+            if (settings.quality) {
+                // 更新选择器UI
+                const qualitySelector = document.getElementById('quality-selector');
+                if (qualitySelector) {
+                    qualitySelector.value = settings.quality;
+                }
+                
+                // 更新质量指示器
+                const qualityIndicator = document.getElementById('quality-indicator');
+                if (qualityIndicator) {
+                    qualityIndicator.textContent = `视频质量: ${settings.quality}`;
+                }
+                
+                // 更新存储的质量设置
+                localStorage.setItem('videoQuality', settings.quality);
+                
+                // 更新Canvas设置
+                CONFIG.CURRENT_QUALITY = settings.quality;
+                CONFIG.VIDEO_QUALITY[settings.quality] = {
+                    width: settings.width || CONFIG.VIDEO_QUALITY[settings.quality].width,
+                    height: settings.height || CONFIG.VIDEO_QUALITY[settings.quality].height,
+                    jpegQuality: settings.jpegQuality || CONFIG.VIDEO_QUALITY[settings.quality].jpegQuality
+                };
+                
+                // 应用新设置
+                setVideoQuality(settings.quality);
+            }
+        });
+
+        // 在函数头部添加质量快捷键设置
+        document.addEventListener('keydown', function(e) {
+            // 只有当按下Alt键时才激活快捷键
+            if (e.altKey) {
+                switch(e.key) {
+                    case '1':
+                        // 切换至低质量
+                        document.getElementById('quality-selector').value = 'LOW';
+                        document.getElementById('quality-selector').dispatchEvent(new Event('change'));
+                        break;
+                    case '2':
+                        // 切换至中等质量
+                        document.getElementById('quality-selector').value = 'MEDIUM';
+                        document.getElementById('quality-selector').dispatchEvent(new Event('change'));
+                        break;
+                    case '3':
+                        // 切换至高质量
+                        document.getElementById('quality-selector').value = 'HIGH';
+                        document.getElementById('quality-selector').dispatchEvent(new Event('change'));
+                        break;
+                }
+            }
+        });
+
+        // 在页面加载完成后立即向服务器发送当前质量设置
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const savedQuality = localStorage.getItem('videoQuality') || 'HIGH';
+                const qualitySelector = document.getElementById('quality-selector');
+                if (qualitySelector) {
+                    qualitySelector.value = savedQuality;
+                    
+                    // 手动触发change事件，确保服务器接收到初始质量设置
+                    qualitySelector.dispatchEvent(new Event('change'));
+                }
+            }, 1000); // 延迟1秒确保连接已建立
+        });
+
+        // 跳帧率选择器事件处理
+        document.getElementById('frameskip-selector').addEventListener('change', function(e) {
+            const selectedFrameSkip = parseInt(e.target.value);
+            console.log(`正在切换跳帧率到: ${selectedFrameSkip}`);
+            
+            // 更新界面
+            document.getElementById('frameskip-indicator').textContent = `跳帧率: ${selectedFrameSkip}`;
+            
+            // 保存到localStorage
+            localStorage.setItem('frameSkip', selectedFrameSkip);
+            
+            // 向服务器发送更新
+            const qualitySettings = CONFIG.VIDEO_QUALITY[CONFIG.CURRENT_QUALITY];
+            socket.emit('set_video_quality', {
+                quality: CONFIG.CURRENT_QUALITY,
+                width: qualitySettings.width,
+                height: qualitySettings.height,
+                jpegQuality: qualitySettings.jpegQuality,
+                frameSkip: selectedFrameSkip
+            });
+            
+            // 如果当前正在查看视频流，显示设置变更提示
+            if (monitoringActive) {
+                showNotification('跳帧率已更改', `跳帧率已设置为: ${selectedFrameSkip}，较高值将提高FPS但可能减少检测精度`, 'info');
+            }
+        });
+
+        // 添加快捷键设置跳帧率
+        document.addEventListener('keydown', function(e) {
+            // 使用Shift+数字1-9设置跳帧率
+            if (e.shiftKey && !e.altKey && !e.ctrlKey) {
+                const num = parseInt(e.key);
+                if (!isNaN(num) && num >= 1 && num <= 9) {
+                    const selector = document.getElementById('frameskip-selector');
+                    
+                    // 找到最接近的选项
+                    let closestOption = null;
+                    let closestDiff = Infinity;
+                    
+                    Array.from(selector.options).forEach(option => {
+                        const optionValue = parseInt(option.value);
+                        const diff = Math.abs(optionValue - num);
+                        if (diff < closestDiff) {
+                            closestDiff = diff;
+                            closestOption = option;
+                        }
+                    });
+                    
+                    if (closestOption) {
+                        selector.value = closestOption.value;
+                        selector.dispatchEvent(new Event('change'));
+                    } else {
+                        // 如果没有合适的选项，直接设置为输入的值
+                        selector.value = selector.options[0].value;  // 默认选第一个
+                        document.getElementById('frameskip-indicator').textContent = `跳帧率: ${num}`;
+                        
+                        // 保存到localStorage
+                        localStorage.setItem('frameSkip', num);
+                        
+                        // 向服务器发送更新
+                        const qualitySettings = CONFIG.VIDEO_QUALITY[CONFIG.CURRENT_QUALITY];
+                        socket.emit('set_video_quality', {
+                            quality: CONFIG.CURRENT_QUALITY,
+                            width: qualitySettings.width,
+                            height: qualitySettings.height,
+                            jpegQuality: qualitySettings.jpegQuality,
+                            frameSkip: num
+                        });
+                    }
+                }
+            }
+        });
+
+        // 在初始化时从localStorage加载跳帧率设置
+        document.addEventListener('DOMContentLoaded', function() {
+            // 延迟1秒确保页面完全加载
+            setTimeout(function() {
+                // 加载跳帧率设置
+                const savedFrameSkip = localStorage.getItem('frameSkip') || '3';
+                const frameskipSelector = document.getElementById('frameskip-selector');
+                
+                // 尝试找到匹配的选项
+                const options = Array.from(frameskipSelector.options);
+                const matchingOption = options.find(option => option.value === savedFrameSkip);
+                
+                if (matchingOption) {
+                    frameskipSelector.value = savedFrameSkip;
+                } else {
+                    // 如果没有匹配的选项，则选择最接近的
+                    const savedFrameSkipNum = parseInt(savedFrameSkip);
+                    let closestOption = options[0];
+                    let minDiff = Math.abs(parseInt(options[0].value) - savedFrameSkipNum);
+                    
+                    for (let i = 1; i < options.length; i++) {
+                        const diff = Math.abs(parseInt(options[i].value) - savedFrameSkipNum);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestOption = options[i];
+                        }
+                    }
+                    
+                    frameskipSelector.value = closestOption.value;
+                }
+                
+                // 更新显示
+                document.getElementById('frameskip-indicator').textContent = `跳帧率: ${frameskipSelector.value}`;
+            }, 1000);
+        });
+
+        // 从接收到的视频帧中更新FPS显示
+        socket.on('update_frame', function(data) {
+            // 更新FPS计数器（如果数据中包含FPS信息）
+            if (data.fps) {
+                const fpsCounter = document.getElementById('fps-counter');
+                if (fpsCounter) {
+                    fpsCounter.textContent = `${data.fps} FPS`;
+                    
+                    // 根据FPS值设置颜色
+                    if (data.fps < 5) {
+                        fpsCounter.style.color = '#e74c3c'; // 红色 - 低帧率
+                    } else if (data.fps < 15) {
+                        fpsCounter.style.color = '#f39c12'; // 橙色 - 中等帧率
+                    } else {
+                        fpsCounter.style.color = '#2ecc71'; // 绿色 - 高帧率
+                    }
+                }
+            }
+            
+            // 处理帧数据...（保持原有代码）
         });
     </script>
 {% endblock %}

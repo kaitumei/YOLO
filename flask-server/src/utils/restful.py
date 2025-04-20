@@ -1,3 +1,4 @@
+# 错误处理函数
 from flask import jsonify
 from enum import Enum
 
